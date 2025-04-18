@@ -1,101 +1,90 @@
-// Dentro do componente AssistantChat
-
-// ... (importações, estados, useEffects como antes) ...
-
-// **IMPORTANTE**: Coloque a URL de PRODUÇÃO do seu Webhook N8N aqui!
-const N8N_WEBHOOK_BASE_URL = "https://agentes-rioh-digital-n8n.sobntt.easypanel.host/webhook/5c024eb2-5ab2-4be3-92f9-26250da4c65d"; // Substitua pelo seu domínio N8N
-
 const handleSendMessage = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
-    // Garante que temos tudo necessário: input, assistente, URL base, usuário e ID do usuário
-    if (!inputValue.trim() || !currentAssistant || !N8N_WEBHOOK_BASE_URL || !user || !user.id) {
+    if (!inputValue.trim() || isLoading || !currentAssistant || !N8N_WEBHOOK_BASE_URL || !user || !user.id) {
         console.warn("Pré-requisitos para envio não atendidos:", { inputValue, currentAssistant, N8N_WEBHOOK_BASE_URL, user });
         return;
     }
 
-    // Pega o path específico do webhook do assistente atual (do nó Webhook no N8N)
-    // Assumindo que o 'webhook_url' no mock data agora contém apenas o PATH (ex: '5c024eb2-5ab2-4be3-92f9-26250da4c65d')
-    // OU você pode hardcodar o path aqui se for sempre o mesmo para este componente.
-    // VAMOS ASSUMIR que 'webhook_url' no availableAssistants contém o PATH ID do webhook específico
-    // Se não, ajuste essa linha ou a estrutura de 'availableAssistants'
-    // const webhookPath = currentAssistant.webhook_url; // Descomente e ajuste se necessário
-    const webhookPath = "5c024eb2-5ab2-4be3-92f9-26250da4c65d"; // <-- Hardcoded com o path do seu nó Webhook N8N
-
+    const webhookPath = "5c024eb2-5ab2-4be3-92f9-26250da4c65d"; // <-- Confirme se este é o path correto!
     if (!webhookPath) {
         setError("Configuração do webhook ausente para este assistente.");
+        console.error("Erro: webhookPath está faltando.");
         return;
     }
 
-    const fullWebhookUrl = `${N8N_WEBHOOK_BASE_URL.replace(/\/$/, '')}/${webhookPath}`; // Garante uma única barra
+    const fullWebhookUrl = `${N8N_WEBHOOK_BASE_URL.replace(/\/$/, '')}/${webhookPath}`;
 
     const userMessage: Message = { sender: 'user', text: inputValue.trim() };
     setMessages(prev => [...prev, userMessage]);
-    const messageToSend = inputValue.trim(); // Guarda a mensagem antes de limpar
+    const messageToSend = inputValue.trim();
     setInputValue('');
     setIsLoading(true);
     setError(null);
 
+    let responseText = ''; // Variável para armazenar a resposta como texto
+
     try {
-        console.log(`Enviando para: ${fullWebhookUrl}`);
-        console.log("Payload:", {
+        console.log(`[LOG] Enviando para URL: ${fullWebhookUrl}`);
+        const payload = {
             message: messageToSend,
             userId: user.id,
-            sessionId: user.id // Usando userId como sessionId para a memória do N8N
-        });
+            sessionId: user.id
+        };
+        console.log("[LOG] Payload:", JSON.stringify(payload, null, 2)); // Log formatado
 
         const response = await fetch(fullWebhookUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // Adicione headers de Autenticação se o seu webhook N8N estiver protegido
-                // 'Authorization': 'Basic SEU_USUARIO:SUA_SENHA_BASE64',
-                // 'X-N8N-Api-Key': 'SUA_CHAVE_DE_API',
+                // 'Authorization': 'Basic SEU_USUARIO:SUA_SENHA_BASE64', // Descomente se usar Basic Auth
+                // 'X-N8N-Api-Key': 'SUA_CHAVE_DE_API', // Descomente se usar API Key
             },
-            body: JSON.stringify({
-                message: messageToSend, // A mensagem que o usuário digitou
-                userId: user.id,        // ID do usuário do Supabase
-                sessionId: user.id      // ID para agrupar a memória no N8N (usando userId)
-                // Você pode adicionar mais dados se o seu workflow precisar
-                // userEmail: user.email,
-                // assistantType: currentAssistant.type
-            }),
+            body: JSON.stringify(payload),
         });
 
-        console.log("Resposta recebida, Status:", response.status);
+        console.log(`[LOG] Resposta recebida. Status: ${response.status} ${response.statusText}`);
+        console.log("[LOG] Content-Type Header:", response.headers.get('Content-Type'));
+
+        // Lê a resposta como TEXTO primeiro para depuração
+        responseText = await response.text();
+        console.log("[LOG] Raw response text:", responseText); // Log do HTML recebido!
 
         if (!response.ok) {
-            // Tenta ler o corpo do erro se possível
-            let errorBody = `Status: ${response.status} ${response.statusText}`;
-            try {
-                const errorData = await response.json();
-                errorBody += ` | Detalhes: ${JSON.stringify(errorData)}`;
-            } catch (jsonError) {
-                // Ignora se o corpo não for JSON
-            }
-            throw new Error(`Erro na API: ${errorBody}`);
+            // Joga um erro já incluindo o início do texto recebido
+            throw new Error(`Erro na API: Status ${response.status}. Resposta não era OK. Início da resposta: ${responseText.substring(0, 200)}...`);
         }
 
-        // Assume que o N8N retorna um JSON com a chave 'reply' (ou 'output', 'result', etc.)
-        const data = await response.json();
-        console.log("Dados recebidos:", data);
+        // AGORA tenta analisar como JSON
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error("[LOG] Falha ao analisar a resposta como JSON:", parseError);
+            // Joga um erro específico informando que não é JSON
+            throw new Error(`Resposta recebida não é JSON válido. Início da resposta: ${responseText.substring(0, 200)}...`);
+        }
 
-        // Verifique qual campo contém a resposta do agente (ajuste 'data.reply' se necessário)
-        const assistantReply = data.reply || data.output || data.result || data[0]?.json?.reply || "Não foi possível obter uma resposta.";
+        console.log("[LOG] Dados JSON analisados:", data);
 
-        if (assistantReply) {
+        const assistantReply = data.reply || data.output || data.result || data[0]?.json?.reply || null; // Tenta vários campos comuns
+
+        if (assistantReply !== null) {
             const assistantMessage: Message = { sender: 'assistant', text: assistantReply };
             setMessages(prev => [...prev, assistantMessage]);
         } else {
-            throw new Error("Resposta da API não continha um campo de resposta esperado ('reply', 'output', 'result').");
+             console.warn("[LOG] Campo de resposta esperado ('reply', 'output', 'result', etc.) não encontrado no JSON:", data);
+            throw new Error("Resposta da API não continha um campo de resposta esperado.");
         }
 
     } catch (err: any) {
-        console.error("Erro ao chamar webhook N8N:", err);
-        setError(`Erro ao conectar com o assistente: ${err.message}`);
+        console.error("[LOG] Erro no bloco catch principal:", err);
+        // Usa a mensagem de erro gerada, que pode incluir o início da resposta HTML
+        const errorMessageText = `Erro ao conectar com o assistente: ${err.message}`;
+        setError(errorMessageText);
+        // Exibe a mensagem de erro detalhada também no chat
         setMessages(prev => [...prev, { sender: 'assistant', text: `Desculpe, ocorreu um erro. (${err.message})` }]);
     } finally {
         setIsLoading(false);
+        console.log("[LOG] Finalizando handleSendMessage.");
     }
 };
-
-// ... (Resto do componente AssistantChat.tsx como antes) ...
