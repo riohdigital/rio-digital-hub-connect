@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
 // Note: You'll need to update these with your actual Supabase credentials after connecting to Supabase
-export const supabaseUrl = 'YOUR_SUPABASE_URL';
-export const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+export const supabaseUrl = 'https://example.supabase.co';
+export const supabaseKey = 'your-anon-key';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
