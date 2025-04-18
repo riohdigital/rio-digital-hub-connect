@@ -66,7 +66,7 @@ const AssistantChat = () => {
         return;
     }
 
-    const fullWebhookUrl = `${N8N_WEBHOOK_BASE_URL.replace(/\/$/, '')}/${webhookPath}`;
+    const fullWebhookUrl = `${N8N_WEBHOOK_BASE_URL.replace(/\/$/, '')}/webhook/${webhookPath}`;
 
     const userMessage: Message = { sender: 'user', text: inputValue.trim() };
     setMessages(prev => [...prev, userMessage]);
