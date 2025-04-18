@@ -6,79 +6,110 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Eye, EyeOff } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { signIn, signInWithGoogle, loading } = useAuth();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signIn(email, password);
+    
+    try {
+      await signIn(email, password);
+    } catch (error: any) {
+      console.error("Erro durante o login:", error);
+      toast({
+        title: "Erro no login",
+        description: error.message || "Não foi possível fazer login",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
-      <Card className="mx-auto max-w-sm w-full">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 bg-gradient-to-br from-secondary to-background">
+      <Card className="mx-auto max-w-sm w-full shadow-lg">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Login</CardTitle>
+          <div className="flex justify-center mb-4">
+            <img src="/logo.png" alt="RIOH DIGITAL AI" className="h-12" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-primary">Login</CardTitle>
           <CardDescription>
-            Enter your email and password to access your account
+            Digite seu e-mail e senha para acessar sua conta
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
-                placeholder="name@example.com"
+                placeholder="nome@exemplo.com"
                 required
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
+                className="border-primary/20 focus:border-primary"
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Senha</Label>
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-primary underline-offset-4 hover:underline"
+                  className="text-sm text-primary hover:underline"
                 >
-                  Forgot password?
+                  Esqueceu a senha?
                 </Link>
               </div>
-              <Input
-                id="password"
-                required
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  required
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  className="border-primary/20 focus:border-primary pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
+              {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+              <span className="w-full border-t border-primary/20" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
+                Ou continue com
               </span>
             </div>
           </div>
 
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full border-primary/20 hover:bg-primary/5"
             type="button"
             onClick={() => signInWithGoogle()}
             disabled={loading}
@@ -107,12 +138,12 @@ export default function Login() {
         </CardContent>
         <CardFooter className="flex flex-col">
           <div className="text-sm text-muted-foreground text-center">
-            Don&apos;t have an account?{" "}
+            Não tem uma conta?{" "}
             <Link
               to="/register"
-              className="text-primary underline-offset-4 hover:underline"
+              className="text-primary hover:underline"
             >
-              Sign up
+              Cadastre-se
             </Link>
           </div>
         </CardFooter>
