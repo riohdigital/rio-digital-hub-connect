@@ -1,15 +1,17 @@
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Assistant } from '@/lib/supabase'; // Importe a definição do tipo Assistant
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Loader2, Send } from 'lucide-react';
 
-import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send } from "lucide-react";
-import { Assistant } from "@/lib/supabase";
-import { useToast } from "@/components/ui/use-toast";
-
-// Mock assistants data (In a real app, this would come from an API/Supabase)
+// --- Mock Data ---
+// Cole ou importe a mesma constante 'availableAssistants' do Dashboard.tsx aqui
+// ou crie um arquivo separado (ex: src/lib/assistants.ts) e importe de lá.
+// **IMPORTANTE**: Preencha os 'webhook_url' CORRETOS!
 const availableAssistants: Assistant[] = [
   {
     id: "1",
@@ -17,266 +19,204 @@ const availableAssistants: Assistant[] = [
     description: "Obtenha os resultados mais atualizados de partidas esportivas em tempo real.",
     icon: "🏆",
     type: "assistente_de_resultados_esportivos",
-    webhook_url: "https://your-n8n-webhook-url.com/webhook/sports-results"
+    webhook_url: "COLOQUE_A_URL_DO_WEBHOOK_N8N_AQUI_PARA_RESULTADOS" // <-- Preencha!
   },
   {
     id: "2",
     name: "DigiRioh",
     description: "Assistente digital para otimização de processos e tomada de decisão.",
     icon: "⚙️",
-    type: "digirioh"
+    type: "digirioh",
+    webhook_url: "COLOQUE_A_URL_DO_WEBHOOK_N8N_AQUI_PARA_DIGIRIOH" // <-- Preencha!
   },
   {
     id: "3",
     name: "Agente do Booking",
     description: "Otimize suas reservas e maximize sua ocupação com nosso assistente especializado.",
     icon: "🏨",
-    type: "agente_do_booking"
+    type: "agente_do_booking",
+    webhook_url: "COLOQUE_A_URL_DO_WEBHOOK_N8N_AQUI_PARA_BOOKING" // <-- Preencha!
   },
   {
     id: "4",
     name: "Agente de Airbnb",
     description: "Maximize o potencial de seus imóveis no Airbnb com recomendações personalizadas.",
     icon: "🏠",
-    type: "agente_de_airbnb"
+    type: "agente_de_airbnb",
+    webhook_url: "COLOQUE_A_URL_DO_WEBHOOK_N8N_AQUI_PARA_AIRBNB" // <-- Preencha!
   }
 ];
+// --- Fim do Mock Data ---
+
 
 interface Message {
-  id: string;
-  content: string;
-  sender: "user" | "assistant";
-  timestamp: Date;
+  sender: 'user' | 'assistant';
+  text: string;
 }
 
 export default function AssistantChat() {
   const { assistantType } = useParams<{ assistantType: string }>();
-  const { user, userPlans } = useAuth();
-  const [assistant, setAssistant] = useState<Assistant | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [messageInput, setMessageInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { user, userPlans } = useAuth(); // Pega o usuário logado e seus planos
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const [currentAssistant, setCurrentAssistant] = useState<Assistant | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Find the assistant based on the URL parameter
     const foundAssistant = availableAssistants.find(a => a.type === assistantType);
-    if (!foundAssistant) {
-      toast({
-        title: "Assistente não encontrado",
-        description: "O assistente solicitado não foi encontrado.",
-        variant: "destructive",
-      });
-      navigate("/dashboard");
-      return;
+    if (foundAssistant) {
+        // Verifica se o usuário tem acesso a este assistente
+        const hasAccess = userPlans.some(plan => plan.plan_name === foundAssistant.type);
+        if (!hasAccess) {
+            // Redireciona se não tiver acesso (ou mostra mensagem)
+            navigate('/dashboard'); // Ou para uma página de acesso negado
+            return;
+        }
+        setCurrentAssistant(foundAssistant);
+        // Adiciona mensagem inicial se desejar
+        setMessages([{ sender: 'assistant', text: `Olá! Sou o ${foundAssistant.name}. Como posso ajudar?` }]);
+    } else {
+        // Assistente não encontrado, talvez redirecionar
+         navigate('/dashboard'); // Ou para página de erro
     }
-    
-    setAssistant(foundAssistant);
+  }, [assistantType, userPlans, navigate]);
 
-    // Check if the user has access to this assistant
-    const hasAccess = userPlans.some(plan => plan.plan_name === assistantType);
-    if (!hasAccess) {
-      toast({
-        title: "Acesso Restrito",
-        description: "Você não possui acesso a este assistente. Adquira um plano para continuar.",
-        variant: "destructive",
-      });
-      navigate("/dashboard");
-      return;
-    }
-
-    // Add a welcome message from the assistant
-    setMessages([
-      {
-        id: "welcome",
-        content: `Olá! Eu sou o assistente de ${foundAssistant.name}. Como posso ajudar você hoje?`,
-        sender: "assistant",
-        timestamp: new Date(),
-      },
-    ]);
-  }, [assistantType, navigate, toast, userPlans]);
-
+  // Efeito para rolar para o final quando novas mensagens chegam
   useEffect(() => {
-    // Scroll to bottom when messages change
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    if (scrollAreaRef.current) {
+        const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollElement) {
+            scrollElement.scrollTop = scrollElement.scrollHeight;
+        }
     }
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!messageInput.trim() || !assistant?.webhook_url) return;
-    
-    const newUserMessage: Message = {
-      id: Date.now().toString(),
-      content: messageInput,
-      sender: "user",
-      timestamp: new Date(),
-    };
+  const handleSendMessage = async (e?: React.FormEvent<HTMLFormElement>) => {
+    if (e) e.preventDefault();
+    if (!inputValue.trim() || isLoading || !currentAssistant || !currentAssistant.webhook_url || !user) return;
 
-    setMessages(prev => [...prev, newUserMessage]);
-    setMessageInput("");
+    const userMessage: Message = { sender: 'user', text: inputValue.trim() };
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
     setIsLoading(true);
+    setError(null);
 
     try {
-      // Send message to the N8N webhook
-      const response = await fetch(assistant.webhook_url, {
-        method: "POST",
+      const response = await fetch(currentAssistant.webhook_url, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
+          // Adicione outros headers se o N8N precisar (ex: Authorization)
         },
         body: JSON.stringify({
-          message: messageInput,
-          userId: user?.id,
-          assistantType: assistant.type,
+          message: userMessage.text,
+          userId: user.id, // Envia o ID do usuário do Supabase
+          // Adicione outros dados se necessário (profile, etc.)
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Falha na comunicação com o assistente.");
+        throw new Error(`Erro na API: ${response.statusText}`);
       }
 
-      const responseData = await response.json();
-      
-      // Add the assistant's response
-      const assistantMessage: Message = {
-        id: Date.now().toString() + "-response",
-        content: responseData.reply || "Desculpe, não consegui processar sua solicitação.",
-        sender: "assistant",
-        timestamp: new Date(),
-      };
+      // Assume que o N8N retorna um JSON com a chave 'reply'
+      const data = await response.json();
 
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error("Error sending message to webhook:", error);
-      
-      // Add an error message
-      const errorMessage: Message = {
-        id: Date.now().toString() + "-error",
-        content: "Desculpe, ocorreu um erro ao processar sua solicitação. Por favor, tente novamente mais tarde.",
-        sender: "assistant",
-        timestamp: new Date(),
-      };
+      if (data.reply) {
+        const assistantMessage: Message = { sender: 'assistant', text: data.reply };
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+         throw new Error("Resposta da API não continha a chave 'reply'.");
+      }
 
-      setMessages(prev => [...prev, errorMessage]);
-      
-      toast({
-        title: "Erro na comunicação",
-        description: "Não foi possível se comunicar com o assistente. Tente novamente mais tarde.",
-        variant: "destructive",
-      });
+    } catch (err: any) {
+      console.error("Erro ao chamar webhook N8N:", err);
+      setError(`Erro ao conectar com o assistente: ${err.message}`);
+      // Adiciona uma mensagem de erro ao chat (opcional)
+      setMessages(prev => [...prev, {sender: 'assistant', text: `Desculpe, ocorreu um erro. (${err.message})`}]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  if (!assistant) return null;
+  if (!currentAssistant) {
+    // Pode mostrar um spinner de carregamento mais robusto aqui
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]">
-      {/* Header */}
-      <div className="bg-secondary/60 p-4 border-b">
-        <div className="container flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} aria-label="Back to Dashboard">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center">
-            <span className="text-2xl mr-2">{assistant.icon}</span>
-            <div>
-              <h1 className="font-semibold text-lg">{assistant.name}</h1>
-              <p className="text-sm text-muted-foreground">{assistant.description}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col h-screen bg-background">
+      {/* Cabeçalho */}
+      <header className="flex items-center p-4 border-b bg-card shadow-sm">
+         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="mr-2">
+             <ArrowLeft className="h-5 w-5" />
+         </Button>
+         <div className="text-3xl mr-3">{currentAssistant.icon}</div>
+         <h1 className="text-xl font-semibold">{currentAssistant.name}</h1>
+         {/* Pode adicionar mais infos ou ações aqui */}
+      </header>
 
-      {/* Chat Container */}
-      <div 
-        className="flex-1 overflow-y-auto p-4 pb-20 bg-secondary/20"
-        ref={chatContainerRef}
-        style={{ 
-          backgroundImage: assistant.type === "assistente_de_resultados_esportivos" 
-            ? "url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=2070&auto=format')"
-            : undefined,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundBlendMode: "overlay",
-        }}
-      >
-        <div className="container max-w-4xl">
-          {messages.map((message) => (
+      {/* Área do Chat */}
+      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+        <div className="space-y-4">
+          {messages.map((msg, index) => (
             <div
-              key={message.id}
-              className={`mb-4 flex ${
-                message.sender === "user" ? "justify-end" : "justify-start"
-              }`}
+              key={index}
+              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div
-                className={`max-w-[80%] rounded-lg p-4 ${
-                  message.sender === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background shadow-sm"
-                }`}
-              >
-                <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                <div
-                  className={`text-xs mt-1 ${
-                    message.sender === "user"
-                      ? "text-primary-foreground/70"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {message.timestamp.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-              </div>
+              <Card className={`max-w-[75%] p-3 ${
+                  msg.sender === 'user'
+                    ? 'bg-primary text-primary-foreground rounded-br-none'
+                    : 'bg-muted text-muted-foreground rounded-bl-none'
+              }`}>
+                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+              </Card>
             </div>
           ))}
-          
           {isLoading && (
-            <div className="flex justify-start mb-4">
-              <div className="bg-background rounded-lg p-4 max-w-[80%] shadow-sm flex items-center space-x-2">
-                <div className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="h-2 w-2 bg-primary rounded-full animate-bounce"></div>
-              </div>
-            </div>
+             <div className="flex justify-start">
+                <Card className="max-w-[75%] p-3 bg-muted text-muted-foreground rounded-bl-none">
+                    <div className="flex items-center space-x-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm italic">Assistente digitando...</span>
+                    </div>
+                </Card>
+             </div>
+          )}
+           {error && (
+             <div className="flex justify-start">
+                <Card className="max-w-[75%] p-3 bg-destructive text-destructive-foreground rounded-bl-none">
+                    <p className="text-sm">{error}</p>
+                </Card>
+             </div>
           )}
         </div>
-      </div>
+      </ScrollArea>
 
-      {/* Message Input */}
-      <div className="bg-background p-4 border-t sticky bottom-0 z-10">
-        <div className="container max-w-4xl flex gap-2 items-end">
-          <Textarea
-            className="flex-1 resize-none"
+      {/* Área de Input */}
+      <footer className="p-4 border-t bg-card">
+        <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+          <Input
+            type="text"
             placeholder="Digite sua mensagem aqui..."
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            onKeyDown={handleKeyPress}
-            rows={1}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             disabled={isLoading}
+            className="flex-1"
           />
-          <Button
-            onClick={handleSendMessage}
-            disabled={isLoading || !messageInput.trim()}
-            className="flex-shrink-0"
-          >
-            <Send className="h-5 w-5" />
+          <Button type="submit" disabled={isLoading || !inputValue.trim()} size="icon">
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4"/>}
             <span className="sr-only">Enviar</span>
           </Button>
-        </div>
-      </div>
+        </form>
+      </footer>
     </div>
   );
 }
