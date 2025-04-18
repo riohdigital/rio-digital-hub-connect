@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,8 +9,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
-import AssistantChat from "./pages/AssistantChat";
-import SportsResults from "./pages/SportsResults";
+import AssistantChat from "./pages/AssistantChat"; // Usaremos este para todos
+// import SportsResults from "./pages/SportsResults"; // Não precisamos mais deste
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 
@@ -29,15 +28,16 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            
+
             {/* Landing page */}
             <Route path="/" element={<LandingPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              {/* Rota genérica para todos os assistentes */}
               <Route path="/assistants/:assistantType" element={<AssistantChat />} />
-              <Route path="/sports-results" element={<SportsResults />} />
+              {/* A rota /sports-results foi removida */}
             </Route>
 
             {/* Catch-all route */}
