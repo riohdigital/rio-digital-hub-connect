@@ -1,4 +1,58 @@
-const handleSendMessage = async (e?: React.FormEvent<HTMLFormElement>) => {
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { PaperPlaneIcon } from "lucide-react";
+
+// Define o tipo de mensagem para uso no chat
+interface Message {
+  sender: 'user' | 'assistant';
+  text: string;
+}
+
+// Defina a interface para o assistente se necessário
+interface Assistant {
+  id: string;
+  name: string;
+  // Adicione outras propriedades conforme necessário
+}
+
+// URL base para o webhook do n8n (geralmente viria de variáveis de ambiente)
+const N8N_WEBHOOK_BASE_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://seu-servidor-n8n.com/webhook";
+
+const AssistantChat = () => {
+  const { assistantType } = useParams();
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentAssistant, setCurrentAssistant] = useState<Assistant | null>(null);
+
+  useEffect(() => {
+    // Aqui você pode carregar informações sobre o assistante com base no assistantType
+    // Este é apenas um exemplo, você precisaria implementar isso adequadamente
+    if (assistantType) {
+      setCurrentAssistant({
+        id: assistantType,
+        name: `Assistente ${assistantType.charAt(0).toUpperCase() + assistantType.slice(1)}`
+      });
+      
+      // Limpa as mensagens quando muda de assistente
+      setMessages([]);
+      
+      // Você pode adicionar uma mensagem de boas-vindas
+      setMessages([{ 
+        sender: 'assistant', 
+        text: `Olá! Eu sou o assistente para ${assistantType}. Como posso ajudar você hoje?` 
+      }]);
+    }
+  }, [assistantType]);
+
+  const handleSendMessage = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (!inputValue.trim() || isLoading || !currentAssistant || !N8N_WEBHOOK_BASE_URL || !user || !user.id) {
         console.warn("Pré-requisitos para envio não atendidos:", { inputValue, currentAssistant, N8N_WEBHOOK_BASE_URL, user });
@@ -87,4 +141,58 @@ const handleSendMessage = async (e?: React.FormEvent<HTMLFormElement>) => {
         setIsLoading(false);
         console.log("[LOG] Finalizando handleSendMessage.");
     }
+  };
+
+  return (
+    <div className="container mx-auto p-4 max-w-4xl">
+      <Card className="p-4">
+        <h1 className="text-2xl font-bold mb-4">
+          {currentAssistant ? currentAssistant.name : "Assistente"}
+        </h1>
+        
+        {/* Área de mensagens */}
+        <ScrollArea className="h-[500px] mb-4 p-4 border rounded-md">
+          {messages.map((message, index) => (
+            <div 
+              key={index} 
+              className={`mb-4 p-3 rounded-lg ${
+                message.sender === 'user' 
+                  ? 'bg-primary text-primary-foreground ml-auto max-w-[80%] text-right' 
+                  : 'bg-muted text-muted-foreground max-w-[80%]'
+              }`}
+            >
+              {message.text}
+            </div>
+          ))}
+          {isLoading && (
+            <div className="bg-muted text-muted-foreground p-3 rounded-lg max-w-[80%] mb-4">
+              Digitando...
+            </div>
+          )}
+          {error && (
+            <div className="bg-destructive text-destructive-foreground p-3 rounded-lg max-w-[80%] mb-4">
+              {error}
+            </div>
+          )}
+        </ScrollArea>
+        
+        {/* Formulário de envio de mensagem */}
+        <form onSubmit={handleSendMessage} className="flex gap-2">
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Digite sua mensagem..."
+            disabled={isLoading}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={isLoading || !inputValue.trim()}>
+            <PaperPlaneIcon className="h-4 w-4 mr-2" />
+            Enviar
+          </Button>
+        </form>
+      </Card>
+    </div>
+  );
 };
+
+export default AssistantChat;
