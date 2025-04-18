@@ -6,34 +6,71 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const { signUp, loading, signInWithGoogle } = useAuth();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signUp(email, password, fullName);
+    
+    try {
+      // Validação básica
+      if (!email || !password || !fullName) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Por favor, preencha todos os campos",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (password.length < 6) {
+        toast({
+          title: "Senha muito curta",
+          description: "A senha deve ter pelo menos 6 caracteres",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      await signUp(email, password, fullName);
+      
+      toast({
+        title: "Conta criada",
+        description: "Confira seu e-mail para validar sua conta",
+      });
+      
+    } catch (error: any) {
+      console.error("Erro durante o registro:", error);
+      toast({
+        title: "Erro no registro",
+        description: error.message || "Não foi possível criar sua conta",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+          <CardTitle className="text-2xl font-bold">Criar uma conta</CardTitle>
           <CardDescription>
-            Enter your information to create an account
+            Digite suas informações para criar uma conta
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
+              <Label htmlFor="fullName">Nome Completo</Label>
               <Input
                 id="fullName"
-                placeholder="John Doe"
+                placeholder="João da Silva"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
@@ -41,10 +78,10 @@ export default function Register() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
-                placeholder="name@example.com"
+                placeholder="nome@exemplo.com"
                 required
                 type="email"
                 value={email}
@@ -53,7 +90,7 @@ export default function Register() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
                 required
@@ -62,10 +99,11 @@ export default function Register() {
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={6}
                 disabled={loading}
+                placeholder="Mínimo 6 caracteres"
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? "Criando conta..." : "Criar conta"}
             </Button>
           </form>
 
@@ -75,7 +113,7 @@ export default function Register() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
+                Ou continue com
               </span>
             </div>
           </div>
@@ -111,12 +149,12 @@ export default function Register() {
         </CardContent>
         <CardFooter className="flex flex-col">
           <div className="text-sm text-muted-foreground text-center">
-            Already have an account?{" "}
+            Já tem uma conta?{" "}
             <Link
               to="/login"
               className="text-primary underline-offset-4 hover:underline"
             >
-              Log in
+              Entrar
             </Link>
           </div>
         </CardFooter>

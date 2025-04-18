@@ -1,12 +1,9 @@
 
 import { createClient } from '@supabase/supabase-js';
+import { supabase as configuredSupabase } from '@/integrations/supabase/client';
 
-// Initialize Supabase client
-// Note: You'll need to update these with your actual Supabase credentials after connecting to Supabase
-export const supabaseUrl = 'https://example.supabase.co';
-export const supabaseKey = 'your-anon-key';
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Use o cliente supabase da integração configurada
+export const supabase = configuredSupabase;
 
 export interface Profile {
   id: string;
