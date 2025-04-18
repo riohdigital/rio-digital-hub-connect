@@ -1,222 +1,101 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Assistant } from '@/lib/supabase'; // Importe a definição do tipo Assistant
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, Send } from 'lucide-react';
+// Dentro do componente AssistantChat
 
-// --- Mock Data ---
-// Cole ou importe a mesma constante 'availableAssistants' do Dashboard.tsx aqui
-// ou crie um arquivo separado (ex: src/lib/assistants.ts) e importe de lá.
-// **IMPORTANTE**: Preencha os 'webhook_url' CORRETOS!
-const availableAssistants: Assistant[] = [
-  {
-    id: "1",
-    name: "Resultados Esportivos Oficiais",
-    description: "Obtenha os resultados mais atualizados de partidas esportivas em tempo real.",
-    icon: "🏆",
-    type: "assistente_de_resultados_esportivos",
-    webhook_url: "COLOQUE_A_URL_DO_WEBHOOK_N8N_AQUI_PARA_RESULTADOS" // <-- Preencha!
-  },
-  {
-    id: "2",
-    name: "DigiRioh",
-    description: "Assistente digital para otimização de processos e tomada de decisão.",
-    icon: "⚙️",
-    type: "digirioh",
-    webhook_url: "COLOQUE_A_URL_DO_WEBHOOK_N8N_AQUI_PARA_DIGIRIOH" // <-- Preencha!
-  },
-  {
-    id: "3",
-    name: "Agente do Booking",
-    description: "Otimize suas reservas e maximize sua ocupação com nosso assistente especializado.",
-    icon: "🏨",
-    type: "agente_do_booking",
-    webhook_url: "COLOQUE_A_URL_DO_WEBHOOK_N8N_AQUI_PARA_BOOKING" // <-- Preencha!
-  },
-  {
-    id: "4",
-    name: "Agente de Airbnb",
-    description: "Maximize o potencial de seus imóveis no Airbnb com recomendações personalizadas.",
-    icon: "🏠",
-    type: "agente_de_airbnb",
-    webhook_url: "COLOQUE_A_URL_DO_WEBHOOK_N8N_AQUI_PARA_AIRBNB" // <-- Preencha!
-  }
-];
-// --- Fim do Mock Data ---
+// ... (importações, estados, useEffects como antes) ...
 
+// **IMPORTANTE**: Coloque a URL de PRODUÇÃO do seu Webhook N8N aqui!
+const N8N_WEBHOOK_BASE_URL = "https://agentes-rioh-digital-n8n.sobntt.easypanel.host/webhook/5c024eb2-5ab2-4be3-92f9-26250da4c65d"; // Substitua pelo seu domínio N8N
 
-interface Message {
-  sender: 'user' | 'assistant';
-  text: string;
-}
-
-export default function AssistantChat() {
-  const { assistantType } = useParams<{ assistantType: string }>();
-  const { user, userPlans } = useAuth(); // Pega o usuário logado e seus planos
-  const navigate = useNavigate();
-  const [currentAssistant, setCurrentAssistant] = useState<Assistant | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const foundAssistant = availableAssistants.find(a => a.type === assistantType);
-    if (foundAssistant) {
-        // Verifica se o usuário tem acesso a este assistente
-        const hasAccess = userPlans.some(plan => plan.plan_name === foundAssistant.type);
-        if (!hasAccess) {
-            // Redireciona se não tiver acesso (ou mostra mensagem)
-            navigate('/dashboard'); // Ou para uma página de acesso negado
-            return;
-        }
-        setCurrentAssistant(foundAssistant);
-        // Adiciona mensagem inicial se desejar
-        setMessages([{ sender: 'assistant', text: `Olá! Sou o ${foundAssistant.name}. Como posso ajudar?` }]);
-    } else {
-        // Assistente não encontrado, talvez redirecionar
-         navigate('/dashboard'); // Ou para página de erro
-    }
-  }, [assistantType, userPlans, navigate]);
-
-  // Efeito para rolar para o final quando novas mensagens chegam
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-        const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-        if (scrollElement) {
-            scrollElement.scrollTop = scrollElement.scrollHeight;
-        }
-    }
-  }, [messages]);
-
-  const handleSendMessage = async (e?: React.FormEvent<HTMLFormElement>) => {
+const handleSendMessage = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
-    if (!inputValue.trim() || isLoading || !currentAssistant || !currentAssistant.webhook_url || !user) return;
+    // Garante que temos tudo necessário: input, assistente, URL base, usuário e ID do usuário
+    if (!inputValue.trim() || !currentAssistant || !N8N_WEBHOOK_BASE_URL || !user || !user.id) {
+        console.warn("Pré-requisitos para envio não atendidos:", { inputValue, currentAssistant, N8N_WEBHOOK_BASE_URL, user });
+        return;
+    }
+
+    // Pega o path específico do webhook do assistente atual (do nó Webhook no N8N)
+    // Assumindo que o 'webhook_url' no mock data agora contém apenas o PATH (ex: '5c024eb2-5ab2-4be3-92f9-26250da4c65d')
+    // OU você pode hardcodar o path aqui se for sempre o mesmo para este componente.
+    // VAMOS ASSUMIR que 'webhook_url' no availableAssistants contém o PATH ID do webhook específico
+    // Se não, ajuste essa linha ou a estrutura de 'availableAssistants'
+    // const webhookPath = currentAssistant.webhook_url; // Descomente e ajuste se necessário
+    const webhookPath = "5c024eb2-5ab2-4be3-92f9-26250da4c65d"; // <-- Hardcoded com o path do seu nó Webhook N8N
+
+    if (!webhookPath) {
+        setError("Configuração do webhook ausente para este assistente.");
+        return;
+    }
+
+    const fullWebhookUrl = `${N8N_WEBHOOK_BASE_URL.replace(/\/$/, '')}/${webhookPath}`; // Garante uma única barra
 
     const userMessage: Message = { sender: 'user', text: inputValue.trim() };
     setMessages(prev => [...prev, userMessage]);
+    const messageToSend = inputValue.trim(); // Guarda a mensagem antes de limpar
     setInputValue('');
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(currentAssistant.webhook_url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Adicione outros headers se o N8N precisar (ex: Authorization)
-        },
-        body: JSON.stringify({
-          message: userMessage.text,
-          userId: user.id, // Envia o ID do usuário do Supabase
-          // Adicione outros dados se necessário (profile, etc.)
-        }),
-      });
+        console.log(`Enviando para: ${fullWebhookUrl}`);
+        console.log("Payload:", {
+            message: messageToSend,
+            userId: user.id,
+            sessionId: user.id // Usando userId como sessionId para a memória do N8N
+        });
 
-      if (!response.ok) {
-        throw new Error(`Erro na API: ${response.statusText}`);
-      }
+        const response = await fetch(fullWebhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // Adicione headers de Autenticação se o seu webhook N8N estiver protegido
+                // 'Authorization': 'Basic SEU_USUARIO:SUA_SENHA_BASE64',
+                // 'X-N8N-Api-Key': 'SUA_CHAVE_DE_API',
+            },
+            body: JSON.stringify({
+                message: messageToSend, // A mensagem que o usuário digitou
+                userId: user.id,        // ID do usuário do Supabase
+                sessionId: user.id      // ID para agrupar a memória no N8N (usando userId)
+                // Você pode adicionar mais dados se o seu workflow precisar
+                // userEmail: user.email,
+                // assistantType: currentAssistant.type
+            }),
+        });
 
-      // Assume que o N8N retorna um JSON com a chave 'reply'
-      const data = await response.json();
+        console.log("Resposta recebida, Status:", response.status);
 
-      if (data.reply) {
-        const assistantMessage: Message = { sender: 'assistant', text: data.reply };
-        setMessages(prev => [...prev, assistantMessage]);
-      } else {
-         throw new Error("Resposta da API não continha a chave 'reply'.");
-      }
+        if (!response.ok) {
+            // Tenta ler o corpo do erro se possível
+            let errorBody = `Status: ${response.status} ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorBody += ` | Detalhes: ${JSON.stringify(errorData)}`;
+            } catch (jsonError) {
+                // Ignora se o corpo não for JSON
+            }
+            throw new Error(`Erro na API: ${errorBody}`);
+        }
+
+        // Assume que o N8N retorna um JSON com a chave 'reply' (ou 'output', 'result', etc.)
+        const data = await response.json();
+        console.log("Dados recebidos:", data);
+
+        // Verifique qual campo contém a resposta do agente (ajuste 'data.reply' se necessário)
+        const assistantReply = data.reply || data.output || data.result || data[0]?.json?.reply || "Não foi possível obter uma resposta.";
+
+        if (assistantReply) {
+            const assistantMessage: Message = { sender: 'assistant', text: assistantReply };
+            setMessages(prev => [...prev, assistantMessage]);
+        } else {
+            throw new Error("Resposta da API não continha um campo de resposta esperado ('reply', 'output', 'result').");
+        }
 
     } catch (err: any) {
-      console.error("Erro ao chamar webhook N8N:", err);
-      setError(`Erro ao conectar com o assistente: ${err.message}`);
-      // Adiciona uma mensagem de erro ao chat (opcional)
-      setMessages(prev => [...prev, {sender: 'assistant', text: `Desculpe, ocorreu um erro. (${err.message})`}]);
+        console.error("Erro ao chamar webhook N8N:", err);
+        setError(`Erro ao conectar com o assistente: ${err.message}`);
+        setMessages(prev => [...prev, { sender: 'assistant', text: `Desculpe, ocorreu um erro. (${err.message})` }]);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
 
-  if (!currentAssistant) {
-    // Pode mostrar um spinner de carregamento mais robusto aqui
-    return (
-        <div className="flex justify-center items-center h-screen">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Cabeçalho */}
-      <header className="flex items-center p-4 border-b bg-card shadow-sm">
-         <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="mr-2">
-             <ArrowLeft className="h-5 w-5" />
-         </Button>
-         <div className="text-3xl mr-3">{currentAssistant.icon}</div>
-         <h1 className="text-xl font-semibold">{currentAssistant.name}</h1>
-         {/* Pode adicionar mais infos ou ações aqui */}
-      </header>
-
-      {/* Área do Chat */}
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-4">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <Card className={`max-w-[75%] p-3 ${
-                  msg.sender === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-br-none'
-                    : 'bg-muted text-muted-foreground rounded-bl-none'
-              }`}>
-                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-              </Card>
-            </div>
-          ))}
-          {isLoading && (
-             <div className="flex justify-start">
-                <Card className="max-w-[75%] p-3 bg-muted text-muted-foreground rounded-bl-none">
-                    <div className="flex items-center space-x-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm italic">Assistente digitando...</span>
-                    </div>
-                </Card>
-             </div>
-          )}
-           {error && (
-             <div className="flex justify-start">
-                <Card className="max-w-[75%] p-3 bg-destructive text-destructive-foreground rounded-bl-none">
-                    <p className="text-sm">{error}</p>
-                </Card>
-             </div>
-          )}
-        </div>
-      </ScrollArea>
-
-      {/* Área de Input */}
-      <footer className="p-4 border-t bg-card">
-        <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-          <Input
-            type="text"
-            placeholder="Digite sua mensagem aqui..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={isLoading || !inputValue.trim()} size="icon">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4"/>}
-            <span className="sr-only">Enviar</span>
-          </Button>
-        </form>
-      </footer>
-    </div>
-  );
-}
+// ... (Resto do componente AssistantChat.tsx como antes) ...
