@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PaperPlaneIcon } from "lucide-react";
+import { Send } from "lucide-react";
 
 // Define o tipo de mensagem para uso no chat
 interface Message {
@@ -33,7 +33,7 @@ const AssistantChat = () => {
   const [currentAssistant, setCurrentAssistant] = useState<Assistant | null>(null);
 
   useEffect(() => {
-    // Aqui você pode carregar informações sobre o assistante com base no assistantType
+    // Aqui você pode carregar informações sobre o assistente com base no assistantType
     // Este é apenas um exemplo, você precisaria implementar isso adequadamente
     if (assistantType) {
       setCurrentAssistant({
@@ -186,7 +186,7 @@ const AssistantChat = () => {
             className="flex-1"
           />
           <Button type="submit" disabled={isLoading || !inputValue.trim()}>
-            <PaperPlaneIcon className="h-4 w-4 mr-2" />
+            <Send className="h-4 w-4 mr-2" />
             Enviar
           </Button>
         </form>
