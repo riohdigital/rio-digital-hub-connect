@@ -21,7 +21,7 @@ interface Assistant {
 }
 
 // URL base para o webhook do n8n (geralmente viria de variáveis de ambiente)
-const N8N_WEBHOOK_BASE_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://seu-servidor-n8n.com/webhook";
+const N8N_WEBHOOK_BASE_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || "https://seu-servidor-n8n.com"; // <-- Removido /webhook do fallback
 
 const AssistantChat = () => {
   const { assistantType } = useParams();
