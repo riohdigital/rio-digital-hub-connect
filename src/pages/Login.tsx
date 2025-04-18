@@ -32,11 +32,11 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 bg-gradient-to-br from-secondary to-background">
-      <Card className="mx-auto max-w-sm w-full shadow-lg">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 bg-gradient-to-br from-primary/5 to-background">
+      <Card className="mx-auto max-w-sm w-full shadow-lg border-primary/20">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="RIOH DIGITAL AI" className="h-12" />
+            <img src="/logo.png" alt="RIOH DIGITAL AI" className="h-16" />
           </div>
           <CardTitle className="text-2xl font-bold text-primary">Login</CardTitle>
           <CardDescription>
@@ -82,6 +82,7 @@ export default function Login() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
