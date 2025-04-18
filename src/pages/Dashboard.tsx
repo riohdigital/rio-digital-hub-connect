@@ -89,7 +89,11 @@ export default function Dashboard() {
                 </CardContent>
                 <CardFooter>
                   <Button asChild className="w-full">
-                    <Link to={`/assistants/${assistant.type}`}>
+                    <Link 
+                      to={assistant.type === 'assistente_de_resultados_esportivos' 
+                        ? '/sports-results' 
+                        : `/assistants/${assistant.type}`}
+                    >
                       Acessar
                     </Link>
                   </Button>
