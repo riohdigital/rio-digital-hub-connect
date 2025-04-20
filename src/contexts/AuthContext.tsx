@@ -34,7 +34,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      
+      // If we have a session, fetch user data
+      if (session?.user) {
+        Promise.all([
+          fetchUserProfile(session.user.id),
+          fetchUserPlans(session.user.id)
+        ]).finally(() => {
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
+      }
     });
 
     // Listen for auth changes
@@ -55,6 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserPlans([]);
           navigate('/login');
         }
+        
+        // Ensure loading is false after any auth state change
+        setLoading(false);
       }
     );
 

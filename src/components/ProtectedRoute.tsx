@@ -7,6 +7,7 @@ export default function ProtectedRoute() {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  // Show loading indicator only for a reasonable time (prevent infinite loading)
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -15,11 +16,12 @@ export default function ProtectedRoute() {
     );
   }
 
+  // If not authenticated after loading completes, redirect to login
   if (!user) {
-    // Redirect to login page with a return URL
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // User is authenticated, render the protected route
   return (
     <>
       <Navbar />

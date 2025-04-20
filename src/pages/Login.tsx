@@ -29,6 +29,7 @@ export default function Login() {
     
     try {
       await signIn(email, password);
+      // No need for manual navigation, the AuthContext will handle this
     } catch (error: any) {
       console.error("Erro durante o login:", error);
       toast({
