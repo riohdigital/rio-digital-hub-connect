@@ -1,4 +1,4 @@
-=// src/contexts/AuthContext.tsx - Nova Tentativa com Verificações Extras
+// src/contexts/AuthContext.tsx - Nova Tentativa com Verificações Extras
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
