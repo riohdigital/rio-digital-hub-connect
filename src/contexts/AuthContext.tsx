@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, Profile, UserPlan } from '@/lib/supabase';
@@ -13,8 +13,8 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
-  loading: boolean; // Estado de loading inicial/autenticação
-  authLoading: boolean; // Estado de loading para ações específicas (login, signup etc)
+  loading: boolean;
+  authLoading: boolean;
   resetPassword: (email: string) => Promise<void>;
 }
 
@@ -25,12 +25,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userPlans, setUserPlans] = useState<UserPlan[]>([]);
-  const [loading, setLoading] = useState(true); // Loading da verificação inicial da sessão
-  const [authLoading, setAuthLoading] = useState(false); // Loading para ações como login/signup
+  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Ref para debug
+  const loadingStateRef = useRef({ 
+    authStateChangeRan: false,
+    loadingDisabled: false
+  });
 
-  // Funções para buscar dados (usando useCallback para memoização)
+  // Função explícita para finalizar loading com log extra
+  const finishLoading = useCallback(() => {
+    console.log('[AuthContext] CRITICAL: Explicitly setting loading to FALSE');
+    loadingStateRef.current.loadingDisabled = true;
+    setLoading(false);
+  }, []);
+
   const fetchUserProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     console.log('[AuthContext] Fetching profile for user:', userId);
     try {
@@ -40,18 +52,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .single();
 
-      if (error && status !== 406) { // 406 significa 'Not Acceptable', geralmente pq não achou (single())
+      if (error && status !== 406) {
         console.error('[AuthContext] Error fetching profile:', error);
-        throw error;
+        return null;
       }
       console.log('[AuthContext] Profile data fetched:', data);
       return data;
     } catch (error) {
       console.error('[AuthContext] Catch block: Error fetching user profile:', error);
-      // Retorna null em caso de erro para não travar o Promise.all
-      return null; 
+      return null;
     }
-  }, []); // Sem dependências, a função não muda
+  }, []);
 
   const fetchUserPlans = useCallback(async (userId: string): Promise<UserPlan[]> => {
     console.log('[AuthContext] Fetching plans for user:', userId);
@@ -61,96 +72,111 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .from('user_plans')
         .select('*')
         .eq('user_id', userId)
-        // Você pode querer buscar todos e filtrar depois, ou ajustar a query se precisar de inativos
-        .gte('expires_at', today); // Use gte para incluir planos que expiram hoje
+        .gte('expires_at', today);
 
       if (error) {
         console.error('[AuthContext] Error fetching plans:', error);
-        throw error;
+        return [];
       }
       console.log('[AuthContext] Plans data fetched:', data);
-      return data || []; // Retorna array vazio se data for null
+      return data || [];
     } catch (error) {
       console.error('[AuthContext] Catch block: Error fetching user plans:', error);
-      return []; // Retorna array vazio em caso de erro
+      return [];
     }
-  }, []); // Sem dependências
+  }, []);
 
-  // Efeito principal para ouvir mudanças na autenticação
+  // Efeito para forçar o fim do loading após 5 segundos como rede de segurança
   useEffect(() => {
-    setLoading(true); // Começa carregando
-    console.log('[AuthContext] Setting up onAuthStateChange listener...');
+    const timeoutId = setTimeout(() => {
+      if (loading && !loadingStateRef.current.loadingDisabled) {
+        console.error('[AuthContext] SAFETY TIMEOUT: Loading state was still true after 5s, forcing to false');
+        finishLoading();
+      }
+    }, 5000); // 5 segundos como timeout de segurança
+
+    return () => clearTimeout(timeoutId);
+  }, [loading, finishLoading]);
+
+  useEffect(() => {
+    console.log('[AuthContext] Setting up onAuthStateChange listener and setting loading=true');
+    setLoading(true);
+    loadingStateRef.current.loadingDisabled = false;
+    loadingStateRef.current.authStateChangeRan = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log(`[AuthContext] onAuthStateChange Event: ${event}`, session);
+        loadingStateRef.current.authStateChangeRan = true;
+        console.log(`[AuthContext] onAuthStateChange Event: ${event}`, session?.user?.id || 'no-user');
         
         setSession(session);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
-        // Limpa dados antigos imediatamente se não houver usuário
         if (!currentUser) {
             console.log('[AuthContext] No user found. Clearing profile/plans.');
             setProfile(null);
             setUserPlans([]);
-            setLoading(false); // *** Importante: Para de carregar se deslogado ***
-            // Não navega aqui automaticamente, deixa ProtectedRoute decidir
-            return; // Sai cedo se não há usuário
+            finishLoading();
+            return;
         }
         
-        // Se TEM um usuário (eventos: INITIAL_SESSION, SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED)
-        // Busca perfil e planos em paralelo
         console.log('[AuthContext] User found. Fetching profile and plans...');
         try {
-             // Executa em paralelo, mas não trava se um falhar (graças ao tratamento de erro individual)
-             const [profileData, plansData] = await Promise.all([
+            const [profileData, plansData] = await Promise.all([
                 fetchUserProfile(currentUser.id),
                 fetchUserPlans(currentUser.id)
             ]);
             
             console.log('[AuthContext] Setting profile and plans state.');
-            setProfile(profileData); // Define mesmo se for null (significa erro no fetch)
-            setUserPlans(plansData); // Define mesmo se for [] (significa erro no fetch ou sem planos)
+            setProfile(profileData);
+            setUserPlans(plansData);
 
         } catch (error) {
-            // Embora as funções internas tratem erros, um catch aqui é uma segurança extra
             console.error('[AuthContext] Error in Promise.all for profile/plans:', error);
-            setProfile(null); // Garante que esteja limpo em caso de erro geral
+            setProfile(null);
             setUserPlans([]);
         } finally {
-             // *** CRUCIAL: Sempre define loading como false após tentar obter os dados ***
-             console.log('[AuthContext] Setting loading state to false.');
-             setLoading(false); 
+            console.log('[AuthContext] Finally block reached after fetch operations');
+            finishLoading();
         }
       }
     );
 
-    // Cleanup: Cancela a inscrição no listener quando o componente desmontar
-    return () => {
-      console.log('[AuthContext] Unsubscribing from onAuthStateChange.');
-      subscription.unsubscribe();
-    };
-    // Apenas useCallback garante que as funções não causem re-execução desnecessária
-  }, [fetchUserProfile, fetchUserPlans]); 
+    // Adicional: verificando se não recebemos eventos em um tempo razoável
+    const initialCheckTimeout = setTimeout(() => {
+      if (!loadingStateRef.current.authStateChangeRan) {
+        console.error('[AuthContext] CRITICAL: No auth state change events received after 2s. Checking session...');
+        // Hack de verificação manual da sessão
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          console.log('[AuthContext] Manual session check result:', session?.user?.id || 'no-session');
+          if (!session) {
+            console.log('[AuthContext] No active session found in manual check');
+            finishLoading();
+          }
+          // Se tiver sessão, esperamos que onAuthStateChange seja chamado eventualmente
+        });
+      }
+    }, 2000);
 
-  // --- Funções de Ação (Login, Logout, etc.) ---
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(initialCheckTimeout);
+      console.log('[AuthContext] Unsubscribing from onAuthStateChange.');
+    };
+  }, [fetchUserProfile, fetchUserPlans, finishLoading]);
 
   const signIn = async (email: string, password: string) => {
-    setAuthLoading(true); // Usa loading específico da ação
-    console.log('[AuthContext] Attempting sign in...');
+    setAuthLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        console.error('[AuthContext] Sign in error:', error);
         toast({ title: "Login failed", description: error.message, variant: "destructive" });
-        throw error; // Re-throw para o componente que chamou, se necessário
+        throw error;
       }
-      // onAuthStateChange vai lidar com a atualização de estado e busca de dados
-      console.log('[AuthContext] Sign in successful (listener will handle state).');
-      navigate('/dashboard'); // Navega após o sucesso da chamada
+      navigate('/dashboard');
     } catch (error) {
-      // Erro já logado
+      console.error('[AuthContext] Sign in error:', error);
     } finally {
       setAuthLoading(false);
     }
@@ -158,103 +184,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     setAuthLoading(true);
-    console.log('[AuthContext] Attempting Google sign in...');
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Redirect para o dashboard pode ser tratado pelo onAuthStateChange ou aqui
-           redirectTo: `${window.location.origin}/dashboard`, // Mantém, mas pode ser redundante
+          redirectTo: `${window.location.origin}/dashboard`,
         },
       });
       if (error) {
-         console.error('[AuthContext] Google sign in error:', error);
         toast({ title: "Google login failed", description: error.message, variant: "destructive" });
         throw error;
       }
-       console.log('[AuthContext] Google sign in initiated (redirect/listener will handle).');
-      // Não precisa navegar aqui, o redirect ou onAuthStateChange cuidam disso
     } catch (error) {
-       // Erro já logado
+      console.error('[AuthContext] Google sign in error:', error);
     } finally {
-      // Pode não chegar aqui se houver redirect, mas é bom ter
-      setAuthLoading(false); 
+      setAuthLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
     setAuthLoading(true);
-    console.log('[AuthContext] Attempting sign up...');
     try {
-      // Primeiro, cria o usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Adiciona o nome completo aos metadados do usuário no Auth
-          data: { full_name: fullName } 
+          data: { full_name: fullName }
         }
       });
 
       if (authError) {
-        console.error('[AuthContext] Sign up error:', authError);
         toast({ title: "Registration failed", description: authError.message, variant: "destructive" });
         throw authError;
       }
 
-       // Se o usuário foi criado E requer confirmação OU não (depende das config do Supabase)
-       // Tentamos criar o perfil. Idealmente, isso seria feito por um Trigger no Supabase DB.
-       // Mas fazemos aqui para garantir.
       if (authData.user) {
-        console.log('[AuthContext] User created, attempting to insert profile...');
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({ 
-            id: authData.user.id, // Usa o ID do usuário criado
+            id: authData.user.id,
             full_name: fullName,
-            updated_at: new Date().toISOString(), // Adicionado para manter compatibilidade com código original
-            // email: email // Opcional, se sua tabela profiles tiver email
+            updated_at: new Date().toISOString(),
           });
         
         if (profileError) {
-          // Loga o erro mas não impede o fluxo principal, 
-          // pois o usuário já foi criado no Auth.
-          console.error('[AuthContext] Error inserting profile (user auth succeeded):', profileError);
-          toast({ title: "Profile creation issue", description: "Could not save profile details, please contact support.", variant: "warning" });
-        } else {
-           console.log('[AuthContext] Profile inserted successfully.');
+          console.error('[AuthContext] Error inserting profile:', profileError);
+          toast({ title: "Profile creation issue", description: "Profile details could not be saved.", variant: "warning" });
         }
-      } else {
-         console.warn('[AuthContext] Sign up call succeeded but no user data returned immediately.');
       }
 
-      toast({ title: "Registration successful", description: "Please check your email for confirmation if required." });
-      navigate('/login'); // Navega para login após sucesso
-
+      toast({ title: "Registration successful", description: "Please check your email for confirmation." });
+      navigate('/login');
     } catch (error) {
-      // Erros já logados
+      console.error('[AuthContext] Sign up error:', error);
     } finally {
       setAuthLoading(false);
     }
   };
 
   const signOut = async () => {
-    setAuthLoading(true); // Usa loading da ação
-    console.log('[AuthContext] Attempting sign out...');
+    setAuthLoading(true);
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('[AuthContext] Sign out error:', error);
         toast({ title: "Error signing out", description: error.message, variant: "destructive" });
         throw error;
       }
-      // Limpar o estado local é redundante pois onAuthStateChange(SIGNED_OUT) vai fazer isso
-      // setUser(null); setSession(null); setProfile(null); setUserPlans([]);
-      console.log('[AuthContext] Sign out successful (listener will handle state).');
-      navigate('/'); // Navega para a home após sucesso
+      navigate('/');
       toast({ title: "Signed out successfully", description: "You have been logged out." });
     } catch (error) {
-       // Erro já logado
+      console.error('[AuthContext] Sign out error:', error);
     } finally {
       setAuthLoading(false);
     }
@@ -262,26 +261,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     setAuthLoading(true);
-    console.log('[AuthContext] Attempting password reset...');
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`, // URL para onde o usuário vai após clicar no link do email
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) {
-        console.error('[AuthContext] Password reset error:', error);
         toast({ title: "Password reset failed", description: error.message, variant: "destructive" });
         throw error;
       }
-      console.log('[AuthContext] Password reset email sent.');
       toast({ title: "Password reset email sent", description: "Please check your email for instructions." });
     } catch (error) {
-       // Erro já logado
+      console.error('[AuthContext] Password reset error:', error);
     } finally {
       setAuthLoading(false);
     }
   };
 
-  // Monta o valor do contexto
+  // Log de debug para verificar o estado atual
+  useEffect(() => {
+    console.log(`[AuthContext] Loading state changed to: ${loading}`);
+  }, [loading]);
+
   const value = {
     session,
     user,
@@ -291,16 +291,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     signUp,
     signOut,
-    loading, // Loading inicial
-    authLoading, // Loading de ações
+    loading,
+    authLoading,
     resetPassword,
   };
 
-  // Retorna o Provider com o valor
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook para consumir o contexto
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
