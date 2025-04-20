@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -30,12 +29,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
-      // If we have a session, fetch user data
       if (session?.user) {
         Promise.all([
           fetchUserProfile(session.user.id),
@@ -48,16 +45,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (event === 'SIGNED_IN' && session) {
-          // Fetch user profile
           await fetchUserProfile(session.user.id);
-          // Fetch user plans
           await fetchUserPlans(session.user.id);
         }
 
@@ -67,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           navigate('/login');
         }
         
-        // Ensure loading is false after any auth state change
         setLoading(false);
       }
     );
@@ -75,10 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch user profile
   const fetchUserProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -99,10 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fetch user plans
   const fetchUserPlans = async (userId: string) => {
     try {
-      // Get current date in ISO format
       const today = new Date().toISOString();
 
       const { data, error } = await supabase
@@ -123,7 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign in with email & password
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
@@ -147,7 +135,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign in with Google OAuth
   const signInWithGoogle = async () => {
     try {
       setLoading(true);
@@ -174,7 +161,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign up with email & password
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
@@ -197,7 +183,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      // If user was created successfully, create a profile
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -228,7 +213,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign out
   const signOut = async () => {
     try {
       setLoading(true);
@@ -243,18 +227,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
+      setUser(null);
+      setSession(null);
       setProfile(null);
       setUserPlans([]);
-      navigate('/login');
+      
+      navigate('/');
+      
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out.",
+      });
     } catch (error) {
       console.error('Error signing out:', error);
-      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // Reset password
   const resetPassword = async (email: string) => {
     try {
       setLoading(true);

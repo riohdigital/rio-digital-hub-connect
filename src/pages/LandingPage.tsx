@@ -50,17 +50,31 @@ export default function LandingPage() {
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
                   Bem-vindo ao RIOH DIGITAL A.I HUB
                 </h1>
-                <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
-                  Acesse nossos assistentes de IA e transforme sua maneira de trabalhar.
-                </p>
+                {user ? (
+                  <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
+                    Você está logado. Acesse seus assistentes de IA e transforme sua maneira de trabalhar.
+                  </p>
+                ) : (
+                  <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
+                    Acesse nossos assistentes de IA e transforme sua maneira de trabalhar.
+                  </p>
+                )}
               </div>
               <div className="space-x-4">
-                <Button asChild size="lg">
-                  <Link to="/register">Comece agora</Link>
-                </Button>
-                <Button asChild variant="outline" size="lg">
-                  <Link to="/login">Já tem uma conta?</Link>
-                </Button>
+                {user ? (
+                  <Button asChild size="lg">
+                    <Link to="/dashboard">Acessar Assistentes</Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button asChild size="lg">
+                      <Link to="/register">Comece agora</Link>
+                    </Button>
+                    <Button asChild variant="outline" size="lg">
+                      <Link to="/login">Já tem uma conta?</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -79,9 +93,15 @@ export default function LandingPage() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button asChild>
-                    <Link to="/register">Experimente agora</Link>
-                  </Button>
+                  {user ? (
+                    <Button asChild>
+                      <Link to="/dashboard">Acessar assistente</Link>
+                    </Button>
+                  ) : (
+                    <Button asChild>
+                      <Link to="/register">Experimente agora</Link>
+                    </Button>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-center">
