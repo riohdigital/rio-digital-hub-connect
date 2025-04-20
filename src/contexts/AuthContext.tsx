@@ -1,3 +1,5 @@
+// src/contexts/AuthContext.tsx - Versão COMPLETA (Perfil + Planos)
+
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -13,8 +15,8 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
-  loading: boolean;
-  authLoading: boolean;
+  loading: boolean; // Loading inicial
+  authLoading: boolean; // Loading de ações
   resetPassword: (email: string) => Promise<void>;
 }
 
@@ -29,86 +31,85 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authLoading, setAuthLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  // Ref para debug
-  const loadingStateRef = useRef({ 
-    authStateChangeRan: false,
-    loadingDisabled: false
-  });
+  const loadingStateRef = useRef({ loadingDisabled: false });
 
-  // Função explícita para finalizar loading com log extra
   const finishLoading = useCallback(() => {
-    console.log('[AuthContext] CRITICAL: Explicitly setting loading to FALSE');
-    loadingStateRef.current.loadingDisabled = true;
-    setLoading(false);
+    if (!loadingStateRef.current.loadingDisabled) {
+        console.log('[AuthContext] Setting loading to FALSE');
+        loadingStateRef.current.loadingDisabled = true;
+        setLoading(false);
+    } else {
+        console.log('[AuthContext] Loading already false, skipping redundant set.');
+    }
   }, []);
 
   const fetchUserProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     console.log('[AuthContext] Fetching profile for user:', userId);
+    const startTime = performance.now();
     try {
-      const { data, error, status } = await supabase
+      console.log('[AuthContext] BEFORE supabase.from(profiles).select()...');
+      const { data, error, status, count } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('id', userId)
         .single();
+      const endTime = performance.now();
+      console.log(`[AuthContext] AFTER supabase.from(profiles)... (${(endTime - startTime).toFixed(2)} ms)`);
+      console.log('[AuthContext] Result -> Status:', status, 'Count:', count, 'Error:', JSON.stringify(error), 'Data:', data ? '{...profile exists...}' : 'null');
 
       if (error && status !== 406) {
-        console.error('[AuthContext] Error fetching profile:', error);
-        return null;
+        console.error(`[AuthContext] Error fetching profile (Status: ${status}):`, error);
+        return null; // Retorna null mas não joga erro aqui, deixa Promise.all lidar
       }
-      console.log('[AuthContext] Profile data fetched:', data);
-      return data;
-    } catch (error) {
-      console.error('[AuthContext] Catch block: Error fetching user profile:', error);
-      return null;
+      console.log('[AuthContext] Profile data fetched successfully or not found.');
+      return data as Profile | null;
+
+    } catch (error: any) {
+      const catchEndTime = performance.now();
+      console.error(`[AuthContext] CATCH block fetchUserProfile (${(catchEndTime - startTime).toFixed(2)} ms):`, error.message || error);
+      return null; // Retorna null no catch para não quebrar Promise.all
     }
   }, []);
 
   const fetchUserPlans = useCallback(async (userId: string): Promise<UserPlan[]> => {
     console.log('[AuthContext] Fetching plans for user:', userId);
+    const startTime = performance.now();
     try {
+      console.log('[AuthContext] BEFORE supabase.from(user_plans).select()...');
       const today = new Date().toISOString();
-      const { data, error } = await supabase
+      const { data, error, status, count } = await supabase
         .from('user_plans')
-        .select('*')
+        .select('*', { count: 'exact' }) // Pede contagem
         .eq('user_id', userId)
         .gte('expires_at', today);
+      const endTime = performance.now();
+      console.log(`[AuthContext] AFTER supabase.from(user_plans)... (${(endTime - startTime).toFixed(2)} ms)`);
+      console.log('[AuthContext] Result -> Status:', status, 'Count:', count, 'Error:', JSON.stringify(error), 'Data:', data ? `[${data.length} plan(s)]` : 'null/empty');
 
       if (error) {
-        console.error('[AuthContext] Error fetching plans:', error);
-        return [];
+        console.error(`[AuthContext] Error fetching plans (Status: ${status}):`, error);
+        return []; // Retorna array vazio no erro
       }
-      console.log('[AuthContext] Plans data fetched:', data);
-      return data || [];
-    } catch (error) {
-      console.error('[AuthContext] Catch block: Error fetching user plans:', error);
-      return [];
+      console.log('[AuthContext] Plans data fetched successfully.');
+      return (data || []) as UserPlan[]; // Retorna dados ou array vazio
+
+    } catch (error: any) {
+      const catchEndTime = performance.now();
+      console.error(`[AuthContext] CATCH block fetchUserPlans (${(catchEndTime - startTime).toFixed(2)} ms):`, error.message || error);
+      return []; // Retorna array vazio no catch
     }
   }, []);
 
-  // Efeito para forçar o fim do loading após 5 segundos como rede de segurança
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (loading && !loadingStateRef.current.loadingDisabled) {
-        console.error('[AuthContext] SAFETY TIMEOUT: Loading state was still true after 5s, forcing to false');
-        finishLoading();
-      }
-    }, 5000); // 5 segundos como timeout de segurança
-
-    return () => clearTimeout(timeoutId);
-  }, [loading, finishLoading]);
-
+  // Efeito principal - Busca Perfil E Planos
   useEffect(() => {
     console.log('[AuthContext] Setting up onAuthStateChange listener and setting loading=true');
     setLoading(true);
     loadingStateRef.current.loadingDisabled = false;
-    loadingStateRef.current.authStateChangeRan = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        loadingStateRef.current.authStateChangeRan = true;
         console.log(`[AuthContext] onAuthStateChange Event: ${event}`, session?.user?.id || 'no-user');
-        
+
         setSession(session);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
@@ -120,164 +121,170 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             finishLoading();
             return;
         }
-        
-        console.log('[AuthContext] User found. Fetching profile and plans...');
+
+        console.log('[AuthContext] User found. Fetching profile AND plans in parallel...');
         try {
-            const [profileData, plansData] = await Promise.all([
+             // Executa em paralelo
+             const [profileData, plansData] = await Promise.all([
                 fetchUserProfile(currentUser.id),
                 fetchUserPlans(currentUser.id)
             ]);
             
-            console.log('[AuthContext] Setting profile and plans state.');
-            setProfile(profileData);
+            console.log('[AuthContext] Promise.all completed. Setting profile and plans state.');
+            setProfile(profileData); 
             setUserPlans(plansData);
 
         } catch (error) {
-            console.error('[AuthContext] Error in Promise.all for profile/plans:', error);
-            setProfile(null);
+            // Este catch só será atingido se uma das funções jogar um erro não tratado, o que não deve acontecer mais
+            console.error('[AuthContext] Unexpected Error in Promise.all for profile/plans:', error);
+            setProfile(null); 
             setUserPlans([]);
         } finally {
-            console.log('[AuthContext] Finally block reached after fetch operations');
-            finishLoading();
+             // CRUCIAL: Sempre define loading como false após tentar obter os dados
+             console.log('[AuthContext] Finally block reached after fetch operations');
+             finishLoading(); 
         }
       }
     );
 
-    // Adicional: verificando se não recebemos eventos em um tempo razoável
-    const initialCheckTimeout = setTimeout(() => {
-      if (!loadingStateRef.current.authStateChangeRan) {
-        console.error('[AuthContext] CRITICAL: No auth state change events received after 2s. Checking session...');
-        // Hack de verificação manual da sessão
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          console.log('[AuthContext] Manual session check result:', session?.user?.id || 'no-session');
-          if (!session) {
-            console.log('[AuthContext] No active session found in manual check');
-            finishLoading();
-          }
-          // Se tiver sessão, esperamos que onAuthStateChange seja chamado eventualmente
-        });
-      }
-    }, 2000);
-
     return () => {
       subscription.unsubscribe();
-      clearTimeout(initialCheckTimeout);
       console.log('[AuthContext] Unsubscribing from onAuthStateChange.');
     };
-  }, [fetchUserProfile, fetchUserPlans, finishLoading]);
+  }, [fetchUserProfile, fetchUserPlans, finishLoading]); // Inclui fetchUserPlans de volta
 
-  const signIn = async (email: string, password: string) => {
-    setAuthLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast({ title: "Login failed", description: error.message, variant: "destructive" });
-        throw error;
-      }
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('[AuthContext] Sign in error:', error);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const signInWithGoogle = async () => {
-    setAuthLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-      if (error) {
-        toast({ title: "Google login failed", description: error.message, variant: "destructive" });
-        throw error;
-      }
-    } catch (error) {
-      console.error('[AuthContext] Google sign in error:', error);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const signUp = async (email: string, password: string, fullName: string) => {
-    setAuthLoading(true);
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: fullName }
+  // --- Funções de Ação (SignIn, SignUp, SignOut, etc.) ---
+  // Mantenha as funções de ação como estavam na última versão completa
+    const signIn = async (email: string, password: string) => {
+      setAuthLoading(true); 
+      console.log('[AuthContext] Attempting sign in...');
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          console.error('[AuthContext] Sign in error:', error);
+          toast({ title: "Login failed", description: error.message, variant: "destructive" });
+          throw error; 
         }
-      });
-
-      if (authError) {
-        toast({ title: "Registration failed", description: authError.message, variant: "destructive" });
-        throw authError;
+        console.log('[AuthContext] Sign in successful (listener will handle state).');
+        navigate('/dashboard'); 
+      } catch (error) {
+        // Erro já logado
+      } finally {
+        setAuthLoading(false);
       }
-
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({ 
-            id: authData.user.id,
-            full_name: fullName,
-            updated_at: new Date().toISOString(),
-          });
-        
-        if (profileError) {
-          console.error('[AuthContext] Error inserting profile:', profileError);
-          toast({ title: "Profile creation issue", description: "Profile details could not be saved.", variant: "warning" });
+    };
+  
+    const signInWithGoogle = async () => {
+      setAuthLoading(true);
+      console.log('[AuthContext] Attempting Google sign in...');
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+             redirectTo: `${window.location.origin}/dashboard`, 
+          },
+        });
+        if (error) {
+           console.error('[AuthContext] Google sign in error:', error);
+          toast({ title: "Google login failed", description: error.message, variant: "destructive" });
+          throw error;
         }
+         console.log('[AuthContext] Google sign in initiated (redirect/listener will handle).');
+      } catch (error) {
+         // Erro já logado
+      } finally {
+        setAuthLoading(false); 
       }
-
-      toast({ title: "Registration successful", description: "Please check your email for confirmation." });
-      navigate('/login');
-    } catch (error) {
-      console.error('[AuthContext] Sign up error:', error);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const signOut = async () => {
-    setAuthLoading(true);
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast({ title: "Error signing out", description: error.message, variant: "destructive" });
-        throw error;
+    };
+  
+    const signUp = async (email: string, password: string, fullName: string) => {
+      setAuthLoading(true);
+      console.log('[AuthContext] Attempting sign up...');
+      try {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: fullName } }
+        });
+  
+        if (authError) {
+          console.error('[AuthContext] Sign up error:', authError);
+          toast({ title: "Registration failed", description: authError.message, variant: "destructive" });
+          throw authError;
+        }
+  
+        if (authData.user) {
+          console.log('[AuthContext] User created, attempting to insert profile...');
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({ 
+              id: authData.user.id, 
+              full_name: fullName,
+              updated_at: new Date().toISOString(),
+            });
+          
+          if (profileError) {
+            console.error('[AuthContext] Error inserting profile (user auth succeeded):', profileError);
+            toast({ title: "Profile creation issue", description: "Could not save profile details.", variant: "warning" });
+          } else {
+             console.log('[AuthContext] Profile inserted successfully.');
+          }
+        } else {
+           console.warn('[AuthContext] Sign up call succeeded but no user data returned immediately.');
+        }
+  
+        toast({ title: "Registration successful", description: "Please check email for confirmation." });
+        navigate('/login'); 
+  
+      } catch (error) {
+        // Erros já logados
+      } finally {
+        setAuthLoading(false);
       }
-      navigate('/');
-      toast({ title: "Signed out successfully", description: "You have been logged out." });
-    } catch (error) {
-      console.error('[AuthContext] Sign out error:', error);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    setAuthLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) {
-        toast({ title: "Password reset failed", description: error.message, variant: "destructive" });
-        throw error;
+    };
+  
+    const signOut = async () => {
+      setAuthLoading(true); 
+      console.log('[AuthContext] Attempting sign out...');
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('[AuthContext] Sign out error:', error);
+          toast({ title: "Error signing out", description: error.message, variant: "destructive" });
+          throw error;
+        }
+        console.log('[AuthContext] Sign out successful (listener will handle state).');
+        navigate('/'); 
+        toast({ title: "Signed out successfully", description: "You have been logged out." });
+      } catch (error) {
+         // Erro já logado
+      } finally {
+        setAuthLoading(false);
       }
-      toast({ title: "Password reset email sent", description: "Please check your email for instructions." });
-    } catch (error) {
-      console.error('[AuthContext] Password reset error:', error);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
+    };
+  
+    const resetPassword = async (email: string) => {
+      setAuthLoading(true);
+      console.log('[AuthContext] Attempting password reset...');
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`, 
+        });
+        if (error) {
+          console.error('[AuthContext] Password reset error:', error);
+          toast({ title: "Password reset failed", description: error.message, variant: "destructive" });
+          throw error;
+        }
+        console.log('[AuthContext] Password reset email sent.');
+        toast({ title: "Password reset email sent", description: "Check your email." });
+      } catch (error) {
+         // Erro já logado
+      } finally {
+        setAuthLoading(false);
+      }
+    };
 
-  // Log de debug para verificar o estado atual
+  // Log de debug para verificar o estado de loading geral
   useEffect(() => {
     console.log(`[AuthContext] Loading state changed to: ${loading}`);
   }, [loading]);
@@ -286,13 +293,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     user,
     profile,
-    userPlans,
+    userPlans, // Agora deve ser preenchido
     signIn,
     signInWithGoogle,
     signUp,
     signOut,
-    loading,
-    authLoading,
+    loading, 
+    authLoading, 
     resetPassword,
   };
 
