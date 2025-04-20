@@ -1,8 +1,12 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogOut } from "lucide-react";
 
 export default function LandingPage() {
+  const { user, signOut } = useAuth();
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="bg-background border-b">
@@ -12,12 +16,29 @@ export default function LandingPage() {
             <span className="font-bold">RIOH DIGITAL A.I HUB</span>
           </div>
           <div className="flex items-center gap-4">
-            <Button asChild variant="outline">
-              <Link to="/login">Log in</Link>
-            </Button>
-            <Button asChild>
-              <Link to="/register">Sign up</Link>
-            </Button>
+            {user ? (
+              <>
+                <Button asChild variant="outline">
+                  <Link to="/dashboard">Dashboard</Link>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={signOut}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="outline">
+                  <Link to="/login">Log in</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/register">Sign up</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
