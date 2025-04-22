@@ -1,4 +1,5 @@
 
+import { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
@@ -15,8 +16,18 @@ interface ChatMessagesProps {
 }
 
 export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) => {
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-scroll to bottom when messages change or loading state changes
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current;
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    }
+  }, [messages, isLoading]);
+
   return (
-    <ScrollArea className="flex-1 p-4">
+    <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
       <div className="space-y-4 max-w-4xl mx-auto">
         {messages.map((msg, index) => (
           <div key={index} className="flex justify-start">
@@ -34,8 +45,8 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                 <span className="text-sm text-muted-foreground">Analisando...</span>
               </div>
               <img 
-                src="https://media.giphy.com/media/channel_assets/sports/P658KMA9mwy4/200h.gif" 
-                alt="Loading" 
+                src="/loading-sports.gif" 
+                alt="Analisando..." 
                 className="h-24 w-auto object-contain rounded-md"
               />
             </Card>
