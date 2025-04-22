@@ -1,10 +1,14 @@
 import { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Bot } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
+  id?: string;
   sender: 'user' | 'assistant';
   text: string;
+  created_at?: string;
 }
 
 interface ChatMessagesProps {
@@ -24,37 +28,66 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
   }, [messages, isLoading]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
+    <div 
+      className="flex-1 overflow-y-auto p-4" 
+      role="log" 
+      aria-label="Mensagens do assistente"
+    >
       <div className="space-y-4 max-w-4xl mx-auto">
-        {messages.map((msg, index) => (
-          <div key={index} className="flex justify-start">
-            <Card className="max-w-[80%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm">
-              <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-            </Card>
-          </div>
-        ))}
+        <AnimatePresence>
+          {messages.map((msg, index) => (
+            <motion.div 
+              key={msg.id || index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex justify-start"
+            >
+              <Card className="max-w-[85%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm">
+                <div className="flex items-start gap-2 mb-1">
+                  <Bot className="h-4 w-4 text-primary mt-1" aria-hidden="true" />
+                  <span className="text-xs font-medium text-primary">Assistente</span>
+                </div>
+                <div className="markdown-content text-sm whitespace-pre-wrap">
+                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </AnimatePresence>
         
         {isLoading && (
-          <div className="flex justify-start">
-            <Card className="max-w-[80%] p-3 bg-muted rounded-bl-none shadow-sm">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-start"
+          >
+            <Card className="max-w-[85%] p-3 bg-muted rounded-bl-none shadow-sm">
               <div className="flex items-center gap-3">
                 <img 
                   src="/loading-sports.gif" 
                   alt="Analisando..." 
                   className="h-6 w-auto object-contain rounded-md"
                 />
-                <span className="text-sm text-muted-foreground">Analisando...</span>
+                <span className="text-sm text-muted-foreground">Analisando sua consulta...</span>
               </div>
             </Card>
-          </div>
+          </motion.div>
         )}
         
         {error && (
-          <div className="flex justify-start">
-            <Card className="max-w-[80%] p-3 bg-destructive text-destructive-foreground rounded-bl-none shadow-sm">
-              <p className="text-sm">{error}</p>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex justify-start"
+          >
+            <Card className="max-w-[85%] p-3 bg-destructive/15 border-destructive text-destructive rounded-bl-none shadow-sm">
+              <div className="flex items-start gap-2">
+                <span className="text-sm font-medium">Erro:</span>
+                <p className="text-sm">{error}</p>
+              </div>
             </Card>
-          </div>
+          </motion.div>
         )}
         
         <div ref={messagesEndRef} />
