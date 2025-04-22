@@ -19,17 +19,8 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
     <ScrollArea className="flex-1 p-4">
       <div className="space-y-4 max-w-4xl mx-auto">
         {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <Card
-              className={`max-w-[80%] p-3 shadow-sm ${
-                msg.sender === 'user'
-                  ? 'bg-primary text-primary-foreground rounded-br-none'
-                  : 'bg-muted text-muted-foreground rounded-bl-none'
-              }`}
-            >
+          <div key={index} className="flex justify-start">
+            <Card className="max-w-[80%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm">
               <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
             </Card>
           </div>
@@ -37,11 +28,16 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
         
         {isLoading && (
           <div className="flex justify-start">
-            <Card className="max-w-[80%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm">
-              <div className="flex items-center space-x-2">
+            <Card className="max-w-[80%] p-3 bg-muted rounded-bl-none shadow-sm space-y-2">
+              <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm italic">Digitando...</span>
+                <span className="text-sm text-muted-foreground">Analisando...</span>
               </div>
+              <img 
+                src="https://media.giphy.com/media/channel_assets/sports/P658KMA9mwy4/200h.gif" 
+                alt="Loading" 
+                className="h-24 w-auto object-contain rounded-md"
+              />
             </Card>
           </div>
         )}

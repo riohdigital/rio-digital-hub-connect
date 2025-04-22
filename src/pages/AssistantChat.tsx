@@ -1,27 +1,23 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { supabase } from "@/lib/supabase";
-import { History, ArchiveX } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-// Define the type of message for use in the chat
 interface Message {
   sender: 'user' | 'assistant';
   text: string;
 }
 
-// Define the interface for the assistant (minimum necessary for the header)
 interface AssistantInfo {
   id: string;
   name: string;
   icon?: string;
 }
 
-// Mock Data for assistant display info
 const assistantDisplayInfo: { [key: string]: { name: string, icon: string } } = {
   "assistente_de_resultados_esportivos": { name: "Resultados Esportivos Oficiais", icon: "🏆" },
   "digirioh": { name: "DigiRioh", icon: "⚙️" },
@@ -38,6 +34,11 @@ const AssistantChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentAssistant, setCurrentAssistant] = useState<AssistantInfo | null>(null);
+
+  // Filter user messages for sidebar
+  const userMessages = useMemo(() => messages.filter(msg => msg.sender === 'user'), [messages]);
+  // Filter assistant messages for main chat area
+  const assistantMessages = useMemo(() => messages.filter(msg => msg.sender === 'assistant'), [messages]);
 
   useEffect(() => {
     if (assistantType) {
@@ -72,7 +73,6 @@ const AssistantChat = () => {
     try {
       const startTime = new Date();
       
-      // Save user message to Supabase
       await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
         user_id: user.id,
         assistant_type: currentAssistant.id,
@@ -96,12 +96,11 @@ const AssistantChat = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const assistantReply = data.reply || data.output || "Desculpe, não consegui processar sua solicitação.";
+        const assistantReply = data.cleaned_text || data.output || data.reply || "Desculpe, não consegui processar sua solicitação.";
         const assistantMessage: Message = { sender: 'assistant', text: assistantReply };
         
         setMessages(prev => [...prev, assistantMessage]);
         
-        // Save assistant message to Supabase
         await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
           user_id: user.id,
           assistant_type: currentAssistant.id,
@@ -157,19 +156,19 @@ const AssistantChat = () => {
       />
       
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel */}
         <ChatSidebar
           inputValue={inputValue}
           isLoading={isLoading}
           onInputChange={setInputValue}
           onSendMessage={handleSendMessage}
           onClearChat={handleClearChat}
+          onClearHistory={handleClearHistory}
+          messages={userMessages}
         />
         
-        {/* Right Panel */}
-        <main className="w-2/3 bg-background">
+        <main className="flex-1 bg-background">
           <ChatMessages 
-            messages={messages.filter(msg => msg.sender === 'assistant')}
+            messages={assistantMessages}
             isLoading={isLoading}
             error={error}
           />
