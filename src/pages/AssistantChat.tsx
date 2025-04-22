@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Tipos
 interface Message {
   id?: string;
   sender: 'user' | 'assistant';
@@ -42,8 +43,12 @@ interface AssistantInfo {
   welcomeMessage?: string;
 }
 
-// Mensagens de boas-vindas para cada assistente
-const assistantDisplayInfo: { [key: string]: { name: string, icon: string, welcomeMessage: string } } = {
+// Configurações
+const MESSAGES_PER_PAGE = 20;
+const MAX_RETRY_ATTEMPTS = 3;
+
+// Informações dos assistentes
+const assistantDisplayInfo = {
   "assistente_de_resultados_esportivos": {
     name: "Resultados Esportivos Oficiais",
     icon: "🏆",
@@ -66,11 +71,8 @@ const assistantDisplayInfo: { [key: string]: { name: string, icon: string, welco
   },
 };
 
-// Número de mensagens por página para paginação
-const MESSAGES_PER_PAGE = 20;
-
 const AssistantChat = () => {
-  const { assistantType } = useParams<{ assistantType: string }>();
+  const { assistantType } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -82,68 +84,167 @@ const AssistantChat = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentAssistant, setCurrentAssistant] = useState<AssistantInfo | null>(null);
   
-  // Estado para confirmações
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [confirmDialogAction, setConfirmDialogAction] = useState<() => Promise<void>>(() => async () => {});
-  const [confirmDialogMessage, setConfirmDialogMessage] = useState("");
-  const [confirmDialogTitle, setConfirmDialogTitle] = useState("");
-  
-  // Funcionalidade de histórico
-  const [isHistoryPanelVisible, setIsHistoryPanelVisible] = useState(false);
-  const [chatHistory, setChatHistory] = useState<Message[]>([]);
-  const [selectedHistoryIds, setSelectedHistoryIds] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  
-  // Persistência local
-  const [cachedMessages, setCachedMessages] = useLocalStorage<{[key: string]: Message[]}>('cached_chat_messages', {});
-  
-  // Estado de retry para solicitações com falha
-  const [failedRequest, setFailedRequest] = useState<{payload: any, retryCount: number} | null>(null);
-  const MAX_RETRY_ATTEMPTS = 3;
-  
   // Estado para anexos
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  
+  // Estado para diálogo de confirmação
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+    action: async () => {}
+  });
+  
+  // Estado para histórico
+  const [historyState, setHistoryState] = useState({
+    isVisible: false,
+    items: [] as Message[],
+    selectedIds: [] as string[],
+    currentPage: 1,
+    totalPages: 1
+  });
+  
+  // Estado para retry
+  const [failedRequest, setFailedRequest] = useState<{payload: any, retryCount: number} | null>(null);
   
   // Estado para notificações
   const [unreadMessages, setUnreadMessages] = useState<{[key: string]: number}>({});
   const [isChatFocused, setIsChatFocused] = useState(true);
   
-  // Filtrar mensagens para sidebar e área de chat principal
-  const userMessages = useMemo(() => messages.filter(msg => msg.sender === 'user'), [messages]);
-  const assistantMessages = useMemo(() => messages.filter(msg => msg.sender === 'assistant'), [messages]);
+  // Cache local
+  const [cachedMessages, setCachedMessages] = useLocalStorage<{[key: string]: Message[]}>('cached_chat_messages', {});
   
-  // Funções de confirmação
+  // Memorização de mensagens filtradas
+  const userMessages = useMemo(() => 
+    messages.filter(msg => msg.sender === 'user'), [messages]
+  );
+  
+  // Diálogo de confirmação
   const showConfirmDialog = (title: string, message: string, action: () => Promise<void>) => {
-    setConfirmDialogTitle(title);
-    setConfirmDialogMessage(message);
-    setConfirmDialogAction(() => action);
-    setConfirmDialogOpen(true);
+    setConfirmDialog({
+      open: true,
+      title,
+      message,
+      action
+    });
   };
+
+  // Carregar assistente e mensagens iniciais
+  useEffect(() => {
+    if (!assistantType) {
+      navigate('/dashboard');
+      return;
+    }
+    
+    const displayInfo = assistantDisplayInfo[assistantType] || 
+      { name: assistantType, icon: '🤖', welcomeMessage: "Olá! Como posso ajudar?" };
+    
+    setCurrentAssistant({
+      id: assistantType,
+      name: displayInfo.name,
+      icon: displayInfo.icon,
+      welcomeMessage: displayInfo.welcomeMessage
+    });
+    
+    // Verificar mensagens em cache
+    const cached = cachedMessages[assistantType];
+    setMessages(cached?.length > 0 
+      ? cached 
+      : [{ sender: 'assistant', text: displayInfo.welcomeMessage }]
+    );
+    
+    setError(null);
+    setIsLoading(false);
+  }, [assistantType, navigate, cachedMessages]);
   
-  // Buscar histórico de chat do Supabase com paginação
+  // Monitorar foco da janela para notificações
+  useEffect(() => {
+    const handleFocus = () => {
+      setIsChatFocused(true);
+      if (currentAssistant) {
+        setUnreadMessages(prev => ({ ...prev, [currentAssistant.id]: 0 }));
+      }
+    };
+    
+    const handleBlur = () => setIsChatFocused(false);
+    
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [currentAssistant]);
+  
+  // Atualizar cache de mensagens
+  useEffect(() => {
+    if (currentAssistant && messages.length > 0) {
+      setCachedMessages(prev => ({
+        ...prev,
+        [currentAssistant.id]: messages
+      }));
+    }
+  }, [messages, currentAssistant, setCachedMessages]);
+  
+  // Configuração de retry para solicitações falhas
+  useEffect(() => {
+    if (!failedRequest || failedRequest.retryCount >= MAX_RETRY_ATTEMPTS) {
+      if (failedRequest) {
+        toast({
+          title: "Falha na comunicação",
+          description: "Não foi possível enviar sua mensagem após várias tentativas.",
+          variant: "destructive"
+        });
+        setFailedRequest(null);
+        setIsLoading(false);
+      }
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      console.log(`Tentativa ${failedRequest.retryCount + 1} de enviar mensagem...`);
+      handleSendMessageWithPayload(failedRequest.payload, failedRequest.retryCount + 1);
+    }, 2000 * (failedRequest.retryCount + 1));
+    
+    return () => clearTimeout(timer);
+  }, [failedRequest, toast]);
+  
+  // Solicitar permissão para notificações
+  useEffect(() => {
+    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          toast({
+            title: "Notificações ativadas",
+            description: "Você receberá notificações quando receber novas mensagens."
+          });
+        }
+      });
+    }
+  }, [toast]);
+  
+  // Carregar histórico de chat
   const fetchChatHistory = useCallback(async (page = 1) => {
     if (!user?.id || !currentAssistant) return;
+    
     try {
       setIsLoading(true);
       
-      // Primeiro, buscar o total para paginação
+      // Buscar total para paginação
       const { count, error: countError } = await supabase
         .from('chat_resultados_esportivos_oficiais_history')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .eq('assistant_type', currentAssistant.id);
       
-      if (countError) {
-        throw new Error(countError.message);
-      }
+      if (countError) throw new Error(countError.message);
       
       const totalItems = count || 0;
-      const calculatedTotalPages = Math.ceil(totalItems / MESSAGES_PER_PAGE);
-      setTotalPages(calculatedTotalPages || 1);
+      const calculatedTotalPages = Math.ceil(totalItems / MESSAGES_PER_PAGE) || 1;
       
-      // Depois buscar os itens para a página atual
+      // Buscar itens da página atual
       const { data, error } = await supabase
         .from('chat_resultados_esportivos_oficiais_history')
         .select('id, message_content, sender, created_at, attachments')
@@ -152,11 +253,9 @@ const AssistantChat = () => {
         .order('created_at', { ascending: false })
         .range((page - 1) * MESSAGES_PER_PAGE, page * MESSAGES_PER_PAGE - 1);
       
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
       
-      // Transformar dados para corresponder à interface Message
+      // Formatar histórico
       const formattedHistory: Message[] = data.map(item => ({
         id: item.id,
         sender: item.sender as 'user' | 'assistant',
@@ -165,10 +264,14 @@ const AssistantChat = () => {
         attachments: item.attachments
       }));
       
-      setChatHistory(formattedHistory);
-      setCurrentPage(page);
+      setHistoryState(prev => ({
+        ...prev,
+        items: formattedHistory,
+        currentPage: page,
+        totalPages: calculatedTotalPages
+      }));
     } catch (err: any) {
-      console.error("Error in fetchChatHistory:", err);
+      console.error("Error fetching history:", err);
       toast({
         title: "Erro ao carregar histórico",
         description: err.message,
@@ -181,176 +284,23 @@ const AssistantChat = () => {
   
   // Alternar visibilidade do painel de histórico
   const handleToggleHistoryPanel = useCallback(() => {
-    const newVisibility = !isHistoryPanelVisible;
-    setIsHistoryPanelVisible(newVisibility);
+    const newVisibility = !historyState.isVisible;
+    setHistoryState(prev => ({ ...prev, isVisible: newVisibility }));
+    
     // Buscar histórico ao abrir o painel se estiver vazio
-    if (newVisibility && chatHistory.length === 0) {
+    if (newVisibility && historyState.items.length === 0) {
       fetchChatHistory(1);
     }
-  }, [isHistoryPanelVisible, chatHistory.length, fetchChatHistory]);
+  }, [historyState.isVisible, historyState.items.length, fetchChatHistory]);
   
-  // Alternar seleção de item do histórico
-  const handleToggleHistorySelection = useCallback((id: string, isChecked: boolean) => {
-    setSelectedHistoryIds(prev => {
-      // Se for string vazia, então é uma operação de "selecionar todos" ou "desmarcar todos"
-      if (id === "") {
-        if (isChecked) {
-          // Selecionar todos os itens visíveis
-          return chatHistory.filter(msg => msg.id).map(msg => msg.id as string);
-        } else {
-          // Desmarcar todos
-          return [];
-        }
-      }
-      // Operação normal para um único item
-      if (isChecked) {
-        return [...prev, id];
-      } else {
-        return prev.filter(item => item !== id);
-      }
-    });
-  }, [chatHistory]);
-  
-  // Excluir itens de histórico selecionados
-  const handleDeleteSelectedHistory = useCallback(async () => {
-    if (!selectedHistoryIds.length || !user?.id) return;
-    const deleteAction = async () => {
-      try {
-        setIsLoading(true);
-        
-        const { error } = await supabase
-          .from('chat_resultados_esportivos_oficiais_history')
-          .delete()
-          .in('id', selectedHistoryIds);
-        
-        if (error) {
-          throw new Error(error.message);
-        }
-        
-        toast({
-          title: "Histórico excluído",
-          description: `${selectedHistoryIds.length} ${
-            selectedHistoryIds.length === 1 ? "item" : "itens"
-          } excluídos com sucesso.`
-        });
-        
-        // Limpar seleção e atualizar histórico
-        setSelectedHistoryIds([]);
-        fetchChatHistory(currentPage);
-      } catch (err: any) {
-        console.error("Error in handleDeleteSelectedHistory:", err);
-        toast({
-          title: "Erro ao excluir histórico",
-          description: err.message,
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    showConfirmDialog(
-      "Confirmar exclusão",
-      `Você tem certeza que deseja excluir ${selectedHistoryIds.length} ${
-        selectedHistoryIds.length === 1 ? "item" : "itens"
-      } do histórico?`,
-      deleteAction
-    );
-  }, [selectedHistoryIds, user, fetchChatHistory, currentPage, toast]);
-  
-  // Carregar dados do assistente e mensagens iniciais
-  useEffect(() => {
-    if (assistantType) {
-      const displayInfo = assistantDisplayInfo[assistantType] ||
-        { name: assistantType, icon: '🤖', welcomeMessage: "Olá! Como posso ajudar?" };
-      
-      setCurrentAssistant({
-        id: assistantType,
-        name: displayInfo.name,
-        icon: displayInfo.icon,
-        welcomeMessage: displayInfo.welcomeMessage
-      });
-      
-      // Verificar se existem mensagens em cache para este assistente
-      const cachedAssistantMessages = cachedMessages[assistantType];
-      if (cachedAssistantMessages && cachedAssistantMessages.length > 0) {
-        setMessages(cachedAssistantMessages);
-      } else {
-        // Se não houver cache, exibir mensagem de boas-vindas
-        setMessages([{
-          sender: 'assistant',
-          text: displayInfo.welcomeMessage
-        }]);
-      }
-      
-      setError(null);
-      setIsLoading(false);
-    } else {
-      navigate('/dashboard');
-    }
-  }, [assistantType, navigate, cachedMessages]);
-  
-  // Configuração de retry para solicitações com falha
-  useEffect(() => {
-    if (failedRequest && failedRequest.retryCount < MAX_RETRY_ATTEMPTS) {
-      const timer = setTimeout(() => {
-        console.log(`Tentativa ${failedRequest.retryCount + 1} de enviar mensagem...`);
-        handleSendMessageWithPayload(failedRequest.payload, failedRequest.retryCount + 1);
-      }, 2000 * (failedRequest.retryCount + 1));
-      return () => clearTimeout(timer);
-    } else if (failedRequest && failedRequest.retryCount >= MAX_RETRY_ATTEMPTS) {
-      toast({
-        title: "Falha na comunicação",
-        description: "Não foi possível enviar sua mensagem após várias tentativas. Verifique sua conexão e tente novamente.",
-        variant: "destructive"
-      });
-      setFailedRequest(null);
-      setIsLoading(false);
-    }
-  }, [failedRequest, toast]);
-  
-  // Atualizar cache quando as mensagens mudarem
-  useEffect(() => {
-    if (currentAssistant && messages.length > 0) {
-      setCachedMessages(prev => ({
-        ...prev,
-        [currentAssistant.id]: messages
-      }));
-    }
-  }, [messages, currentAssistant, setCachedMessages]);
-  
-  // Monitorar foco da janela para notificações
-  useEffect(() => {
-    const handleFocus = () => {
-      setIsChatFocused(true);
-      // Limpar notificações não lidas para este assistente
-      if (currentAssistant) {
-        setUnreadMessages(prev => ({
-          ...prev,
-          [currentAssistant.id]: 0
-        }));
-      }
-    };
-    
-    const handleBlur = () => {
-      setIsChatFocused(false);
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [currentAssistant]);
-  
-  // Função para enviar mensagem com dados específicos e suporte a retry
+  // Enviar mensagem com retry
   const handleSendMessageWithPayload = async (payload: any, retryCount = 0) => {
     if (!currentAssistant || !user?.id) return;
+    
     try {
       setIsLoading(true);
       
+      // Salvar mensagem do usuário no histórico
       await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
         user_id: user.id,
         assistant_type: currentAssistant.id,
@@ -360,6 +310,7 @@ const AssistantChat = () => {
         attachments: payload.attachments || []
       });
       
+      // Enviar para webhook
       const response = await fetch(`${import.meta.env.VITE_N8N_WEBHOOK_URL}/webhook/5c024eb2-5ab2-4be3-92f9-26250da4c65d`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -371,15 +322,13 @@ const AssistantChat = () => {
         }),
       });
       
-      if (!response.ok) {
-        throw new Error(`Erro na resposta: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Erro na resposta: ${response.status}`);
       
       const data = await response.json();
-      // Primeiro verificar cleaned_text conforme solicitado
-      const assistantReply = data.cleaned_text || data.output || data.reply || "Desculpe, não consegui processar sua solicitação.";
+      const assistantReply = data.cleaned_text || data.output || data.reply || 
+        "Desculpe, não consegui processar sua solicitação.";
       
-      // Persistir resposta no histórico
+      // Salvar resposta no histórico
       await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
         user_id: user.id,
         assistant_type: currentAssistant.id,
@@ -388,14 +337,15 @@ const AssistantChat = () => {
         status: 'processed',
       });
       
-      // Se o chat não estiver em foco, incrementar contador de mensagens não lidas
+      // Notificações
       if (!isChatFocused && currentAssistant) {
+        // Incrementar contador
         setUnreadMessages(prev => ({
           ...prev,
           [currentAssistant.id]: (prev[currentAssistant.id] || 0) + 1
         }));
         
-        // Mostrar notificação do navegador se permitido
+        // Notificação do navegador
         if (Notification.permission === "granted") {
           new Notification(`Nova mensagem de ${currentAssistant.name}`, {
             body: assistantReply.substring(0, 100) + (assistantReply.length > 100 ? "..." : ""),
@@ -404,12 +354,26 @@ const AssistantChat = () => {
         }
       }
       
+      // Atualizar mensagens com resposta real
+      setMessages(prev => {
+        const updated = [...prev];
+        if (updated.length > 0) {
+          // Substituir a última mensagem (loading) pela resposta real
+          updated[updated.length - 1] = {
+            sender: 'assistant',
+            text: assistantReply
+          };
+        }
+        return updated;
+      });
+      
       setFailedRequest(null);
       setAttachments([]);
+      setIsLoading(false);
     } catch (err: any) {
-      console.error("Error in handleSendMessageWithPayload:", err);
+      console.error("Error sending message:", err);
       
-      // Configurar para retry
+      // Configurar retry
       if (retryCount < MAX_RETRY_ATTEMPTS) {
         setFailedRequest({ payload, retryCount });
       } else {
@@ -420,58 +384,49 @@ const AssistantChat = () => {
         });
         setError(err.message);
         setFailedRequest(null);
-      }
-    } finally {
-      if (retryCount >= MAX_RETRY_ATTEMPTS) {
         setIsLoading(false);
       }
     }
   };
   
-  // Enviar mensagem com suporte a anexos
+  // Enviar mensagem
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputValue.trim() && attachments.length === 0 || isLoading || !currentAssistant || !user?.id) return;
+    if ((!inputValue.trim() && attachments.length === 0) || isLoading || !currentAssistant || !user?.id) return;
     
     const messageText = inputValue.trim();
+    
+    // Adicionar mensagem do usuário
     const userMessage: Message = { 
       sender: 'user', 
       text: messageText,
       attachments: attachments.length > 0 ? [...attachments] : undefined
     };
     
-    setMessages(prev => [...prev, userMessage]);
+    // Adicionar mensagem de carregamento do assistente
+    setMessages(prev => [
+      ...prev, 
+      userMessage,
+      { sender: 'assistant', text: "Processando sua mensagem..." }
+    ]);
+    
     setInputValue('');
     
+    // Preparar payload
     const payload = {
       message: messageText,
       attachments: attachments.length > 0 ? attachments : undefined
     };
     
-    // Criar cópia local da mensagem assistente em estado de carregamento
-    setMessages(prev => [
-      ...prev, 
-      { sender: 'assistant', text: "Processando sua mensagem..." }
-    ]);
-    
-    // Enviar mensagem com suporte a retry
+    // Enviar com suporte a retry
     await handleSendMessageWithPayload(payload);
-    
-    // Atualizar mensagens com a resposta real (substituindo a mensagem de "carregando")
-    if (messages.length > 0) {
-      const updatedMessages = [...messages];
-      updatedMessages[updatedMessages.length - 1] = {
-        sender: 'assistant',
-        text: "Resposta do assistente aqui"  // Será substituída na próxima renderização
-      };
-      setMessages(updatedMessages);
-    }
   };
   
-  // Carregar anexo para mensagem
+  // Upload de arquivo
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !user?.id) return;
+    
     try {
       setIsUploadingAttachment(true);
       
@@ -483,30 +438,26 @@ const AssistantChat = () => {
             ? 'audio' 
             : 'file';
         
-        // Fazer upload para o storage do Supabase
+        // Upload para Supabase
         const { data, error } = await supabase.storage
           .from('chat_attachments')
           .upload(`${user.id}/${Date.now()}_${file.name}`, file);
         
-        if (error) {
-          throw new Error(error.message);
-        }
+        if (error) throw new Error(error.message);
         
-        // Obter URL pública
+        // URL pública
         const { data: urlData } = await supabase.storage
           .from('chat_attachments')
           .getPublicUrl(data.path);
         
-        // Adicionar ao estado de anexos
-        const newAttachment: Attachment = {
+        // Adicionar ao estado
+        setAttachments(prev => [...prev, {
           id: crypto.randomUUID(),
           type: fileType as 'image' | 'file' | 'audio',
           url: urlData.publicUrl,
           name: file.name,
           size: file.size
-        };
-        
-        setAttachments(prev => [...prev, newAttachment]);
+        }]);
       }
       
       toast({
@@ -523,8 +474,7 @@ const AssistantChat = () => {
       });
     } finally {
       setIsUploadingAttachment(false);
-      // Limpar o input file
-      e.target.value = '';
+      e.target.value = ''; // Limpar input
     }
   };
   
@@ -535,20 +485,22 @@ const AssistantChat = () => {
   
   // Limpar chat
   const handleClearChat = () => {
+    if (!currentAssistant) return;
+    
     const clearAction = async () => {
-      if (currentAssistant) {
-        const welcomeMessage = {
-          sender: 'assistant' as const,
-          text: currentAssistant.welcomeMessage || "Olá! Como posso ajudar?"
-        };
-        setMessages([welcomeMessage]);
-        
-        // Atualizar cache
-        setCachedMessages(prev => ({
-          ...prev,
-          [currentAssistant.id]: [welcomeMessage]
-        }));
-      }
+      const welcomeMessage = {
+        sender: 'assistant' as const,
+        text: currentAssistant.welcomeMessage || "Olá! Como posso ajudar?"
+      };
+      
+      setMessages([welcomeMessage]);
+      
+      // Atualizar cache
+      setCachedMessages(prev => ({
+        ...prev,
+        [currentAssistant.id]: [welcomeMessage]
+      }));
+      
       setInputValue("");
       setError(null);
       setAttachments([]);
@@ -561,9 +513,87 @@ const AssistantChat = () => {
     );
   };
   
-  // Limpar histórico
+  // Funções para gerenciamento de histórico
+  
+  // Alternar seleção de item histórico
+  const handleToggleHistorySelection = (id: string, isChecked: boolean) => {
+    setHistoryState(prev => {
+      const { selectedIds, items } = prev;
+      
+      // Operação de selecionar/desmarcar todos
+      if (id === "") {
+        if (isChecked) {
+          // Selecionar todos
+          return {
+            ...prev,
+            selectedIds: items.filter(msg => msg.id).map(msg => msg.id as string)
+          };
+        } else {
+          // Desmarcar todos
+          return { ...prev, selectedIds: [] };
+        }
+      }
+      
+      // Operação normal para um item
+      const newSelectedIds = isChecked
+        ? [...selectedIds, id]
+        : selectedIds.filter(item => item !== id);
+        
+      return { ...prev, selectedIds: newSelectedIds };
+    });
+  };
+  
+  // Excluir histórico selecionado
+  const handleDeleteSelectedHistory = () => {
+    const { selectedIds } = historyState;
+    if (!selectedIds.length || !user?.id) return;
+    
+    const deleteAction = async () => {
+      try {
+        setIsLoading(true);
+        
+        const { error } = await supabase
+          .from('chat_resultados_esportivos_oficiais_history')
+          .delete()
+          .in('id', selectedIds);
+        
+        if (error) throw new Error(error.message);
+        
+        toast({
+          title: "Histórico excluído",
+          description: `${selectedIds.length} ${
+            selectedIds.length === 1 ? "item" : "itens"
+          } excluídos com sucesso.`
+        });
+        
+        // Limpar seleção e atualizar
+        setHistoryState(prev => ({ ...prev, selectedIds: [] }));
+        fetchChatHistory(historyState.currentPage);
+      } catch (err: any) {
+        console.error("Error deleting history:", err);
+        toast({
+          title: "Erro ao excluir histórico",
+          description: err.message,
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    showConfirmDialog(
+      "Confirmar exclusão",
+      `Você tem certeza que deseja excluir ${selectedIds.length} ${
+        selectedIds.length === 1 ? "item" : "itens"
+      } do histórico?`,
+      deleteAction
+    );
+  };
+  
+  // Limpar todo o histórico
   const handleClearHistory = async () => {
     if (!user || !currentAssistant) return;
+    
     const clearHistoryAction = async () => {
       try {
         setIsLoading(true);
@@ -579,11 +609,14 @@ const AssistantChat = () => {
           description: "Todo o histórico de conversas foi apagado com sucesso."
         });
         
-        // Resetar estado do histórico
-        setChatHistory([]);
-        setSelectedHistoryIds([]);
-        setTotalPages(1);
-        setCurrentPage(1);
+        // Resetar estado
+        setHistoryState(prev => ({
+          ...prev,
+          items: [],
+          selectedIds: [],
+          totalPages: 1,
+          currentPage: 1
+        }));
       } catch (error) {
         console.error("Erro ao apagar histórico:", error);
         toast({
@@ -603,19 +636,13 @@ const AssistantChat = () => {
     );
   };
   
-  // Navegar para outra página do histórico
-  const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    fetchChatHistory(page);
-  };
-  
   // Carregar conversa do histórico
   const handleLoadFromHistory = (historyMessages: Message[]) => {
     if (!historyMessages.length) return;
+    
     const loadAction = async () => {
       setMessages(historyMessages);
       
-      // Atualizar cache
       if (currentAssistant) {
         setCachedMessages(prev => ({
           ...prev,
@@ -623,8 +650,7 @@ const AssistantChat = () => {
         }));
       }
       
-      // Fechar painel de histórico
-      setIsHistoryPanelVisible(false);
+      setHistoryState(prev => ({ ...prev, isVisible: false }));
       
       toast({
         title: "Conversa carregada",
@@ -639,23 +665,11 @@ const AssistantChat = () => {
     );
   };
   
-  // Solicitar permissão para notificações
-  const requestNotificationPermission = useCallback(async () => {
-    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-      const permission = await Notification.requestPermission();
-      if (permission === "granted") {
-        toast({
-          title: "Notificações ativadas",
-          description: "Você receberá notificações quando receber novas mensagens."
-        });
-      }
-    }
-  }, [toast]);
-  
-  // Solicitar permissão de notificação ao montar o componente
-  useEffect(() => {
-    requestNotificationPermission();
-  }, [requestNotificationPermission]);
+  // Paginação do histórico
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > historyState.totalPages) return;
+    fetchChatHistory(page);
+  };
   
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
@@ -674,14 +688,14 @@ const AssistantChat = () => {
           onSendMessage={handleSendMessage}
           onClearChat={handleClearChat}
           onClearHistory={handleClearHistory}
-          isHistoryPanelVisible={isHistoryPanelVisible}
+          isHistoryPanelVisible={historyState.isVisible}
           onToggleHistoryPanel={handleToggleHistoryPanel}
-          chatHistory={chatHistory}
-          selectedHistoryIds={selectedHistoryIds}
+          chatHistory={historyState.items}
+          selectedHistoryIds={historyState.selectedIds}
           onToggleHistorySelection={handleToggleHistorySelection}
           onDeleteSelectedHistory={handleDeleteSelectedHistory}
-          currentPage={currentPage}
-          totalPages={totalPages}
+          currentPage={historyState.currentPage}
+          totalPages={historyState.totalPages}
           onPageChange={handlePageChange}
           onLoadFromHistory={handleLoadFromHistory}
           attachments={attachments}
@@ -697,28 +711,26 @@ const AssistantChat = () => {
             error={error}
           />
           
-          {/* Área de input com suporte a anexos */}
+          {/* Input com suporte a anexos */}
           <div className="border-t p-4 bg-white dark:bg-gray-900 flex flex-col">
-            <div className="flex items-center space-x-2 mb-2">
-              {attachments.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {attachments.map(attachment => (
-                    <div 
-                      key={attachment.id}
-                      className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-md px-2 py-1"
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {attachments.map(attachment => (
+                  <div 
+                    key={attachment.id}
+                    className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-md px-2 py-1"
+                  >
+                    <span className="text-sm truncate max-w-[100px]">{attachment.name}</span>
+                    <button 
+                      onClick={() => handleRemoveAttachment(attachment.id)}
+                      className="ml-2 text-gray-500 hover:text-red-500"
                     >
-                      <span className="text-sm truncate max-w-[100px]">{attachment.name}</span>
-                      <button 
-                        onClick={() => handleRemoveAttachment(attachment.id)}
-                        className="ml-2 text-gray-500 hover:text-red-500"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             
             <form onSubmit={handleSendMessage} className="flex items-center">
               <label className="cursor-pointer mr-2">
@@ -753,23 +765,25 @@ const AssistantChat = () => {
         </main>
       </div>
       
-     {/* Diálogo de confirmação */}
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+      {/* Diálogo de confirmação */}
+      <AlertDialog open={confirmDialog.open} onOpenChange={(isOpen) => setConfirmDialog(prev => ({...prev, open: isOpen}))}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-orange-500" />
-              {confirmDialogTitle}
+              {confirmDialog.title}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmDialogMessage}
+              {confirmDialog.message}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
-                confirmDialogAction().finally(() => setConfirmDialogOpen(false));
+                confirmDialog.action().finally(() => 
+                  setConfirmDialog(prev => ({...prev, open: false}))
+                );
               }}
             >
               Confirmar
@@ -777,8 +791,8 @@ const AssistantChat = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div> // *** ESTA É A TAG DE FECHAMENTO PRINCIPAL ***
+    </div>
   );
 };
-        
+
 export default AssistantChat;
