@@ -8,28 +8,34 @@ export default function ProtectedRoute() {
   const { user, loading } = useAuth();
   const location = useLocation();
   
-  // Debug loading state
+  // Enhanced debug logging
   useEffect(() => {
-    console.log("Protected route loading state:", loading);
-    console.log("User authenticated:", !!user);
-  }, [loading, user]);
+    console.log("[ProtectedRoute] Current state:", { 
+      loading, 
+      isAuthenticated: !!user,
+      userId: user?.id,
+      path: location.pathname
+    });
+  }, [loading, user, location]);
 
-  // Show loading indicator
+  // Show loading indicator while authentication state is being determined
   if (loading) {
+    console.log("[ProtectedRoute] Still loading auth state...");
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        <span className="ml-2 text-muted-foreground">Verificando autenticação...</span>
       </div>
     );
   }
 
   // If not authenticated after loading completes, redirect to login
   if (!user) {
-    console.log("User not authenticated, redirecting to login");
+    console.log("[ProtectedRoute] User not authenticated, redirecting to login");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  console.log("Rendering protected content");
+  console.log("[ProtectedRoute] User is authenticated, rendering protected content");
   
   // User is authenticated, render the protected route
   return (

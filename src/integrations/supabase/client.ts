@@ -1,3 +1,4 @@
+
 // src/integrations/supabase/client.ts - VERSÃO CORRIGIDA
 
 import { createClient } from '@supabase/supabase-js';
@@ -19,8 +20,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 // --- Fim dos Logs ---
 
-// Cria e exporta o cliente usando as variáveis de ambiente
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+// Cria e exporta o cliente usando as variáveis de ambiente e configurações explícitas
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    storage: localStorage, // Especificar explicitamente o storage para evitar inconsistências
+    detectSessionInUrl: true
+  }
+});
 
 // Log de confirmação
-console.log('[Supabase Client Init @ integrations] Cliente Supabase criado:', supabase ? 'Sucesso' : 'Falha'); 
+console.log('[Supabase Client Init @ integrations] Cliente Supabase criado com configurações explícitas de auth'); 
