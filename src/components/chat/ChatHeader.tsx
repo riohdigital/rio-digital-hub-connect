@@ -6,9 +6,10 @@ import { useNavigate } from "react-router-dom";
 interface ChatHeaderProps {
   icon?: string;
   name?: string;
+  gifUrl?: string;
 }
 
-export const ChatHeader = ({ icon, name }: ChatHeaderProps) => {
+export const ChatHeader = ({ icon, name, gifUrl }: ChatHeaderProps) => {
   const navigate = useNavigate();
 
   return (
@@ -23,9 +24,19 @@ export const ChatHeader = ({ icon, name }: ChatHeaderProps) => {
         </h1>
       </div>
       
-      <div className="h-12 w-32 bg-muted rounded-md flex items-center justify-center">
-        <span className="text-sm text-muted-foreground">ANIMAÇÃO SOCCER</span>
-      </div>
+      {gifUrl ? (
+        <div className="h-14 w-40 flex items-center justify-center overflow-hidden">
+          <img 
+            src={gifUrl} 
+            alt="Animation" 
+            className="h-full w-auto object-contain"
+          />
+        </div>
+      ) : (
+        <div className="h-12 w-32 bg-muted rounded-md flex items-center justify-center">
+          <span className="text-sm text-muted-foreground">ANIMAÇÃO SOCCER</span>
+        </div>
+      )}
     </header>
   );
 };

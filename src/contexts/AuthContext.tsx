@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -31,7 +30,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Fetch user profile as a separate function to avoid deadlocks
   const fetchUserProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     console.log('[AuthContext] Fetching profile for user:', userId);
     try {
@@ -53,7 +51,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Fetch user plans as a separate function to avoid deadlocks
   const fetchUserPlans = useCallback(async (userId: string): Promise<UserPlan[]> => {
     console.log('[AuthContext] Fetching plans for user:', userId);
     try {
@@ -76,20 +73,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // CRITICAL FIX: Properly initialize auth state without deadlocks
   useEffect(() => {
     console.log('[AuthContext] Setting up auth state management');
     setLoading(true);
 
-    // Step 1: Set up the auth state change listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       console.log(`[AuthContext] Auth state changed: ${event}`, currentSession?.user?.id || 'no user');
       
-      // Immediately update session and user state synchronously
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
-      // Use setTimeout to break the potential deadlock when fetching additional data
       if (currentSession?.user) {
         setTimeout(async () => {
           try {
@@ -108,25 +101,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }, 0);
       } else {
-        // No user, so clear profile/plans and finish loading
         setProfile(null);
         setUserPlans([]);
         setLoading(false);
       }
     });
 
-    // Step 2: Get the initial session state
     const initializeAuth = async () => {
       try {
         console.log('[AuthContext] Getting initial session');
         const { data } = await supabase.auth.getSession();
         
-        // If no initial session, make sure to set loading to false
         if (!data.session) {
           console.log('[AuthContext] No initial session found');
           setLoading(false);
         }
-        // If there is a session, the onAuthStateChange listener will handle it
       } catch (error) {
         console.error('[AuthContext] Error getting initial session:', error);
         setLoading(false);
@@ -135,7 +124,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth();
 
-    // Safety timeout to prevent infinite loading
     const safetyTimer = setTimeout(() => {
       if (loading) {
         console.warn('[AuthContext] Safety timeout triggered - forcing loading state to false');
@@ -226,7 +214,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fixed: Make sure signOut properly cleans up state and navigates
   const signOut = async () => {
     setAuthLoading(true);
     try {
@@ -238,13 +225,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
       
-      // Clear user data
       setUser(null);
       setSession(null);
       setProfile(null);
       setUserPlans([]);
       
-      // Show success message and navigate to home
       toast({ title: "Signed out successfully", description: "You have been logged out." });
       navigate('/');
     } catch (error) {
@@ -272,7 +257,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Extra logging for debugging
   useEffect(() => {
     console.log('[AuthContext] Auth state updated - loading:', loading, 'user:', user?.email);
   }, [loading, user]);
