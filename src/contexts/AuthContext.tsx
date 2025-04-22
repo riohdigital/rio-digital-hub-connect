@@ -201,7 +201,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (profileError) {
           console.error('[AuthContext] Error inserting profile:', profileError);
-          toast({ title: "Profile creation issue", description: "Profile details could not be saved.", variant: "warning" });
+          toast({ 
+            title: "Profile creation issue", 
+            description: "Profile details could not be saved.", 
+            variant: "default" 
+          });
         }
       }
 
