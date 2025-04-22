@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chat_resultados_esportivos_oficiais_history: {
+        Row: {
+          assistant_type: string
+          created_at: string
+          id: string
+          is_verified: boolean | null
+          message_content: string
+          metadata: Json | null
+          response_time: unknown | null
+          sender: string
+          session_id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          assistant_type: string
+          created_at?: string
+          id?: string
+          is_verified?: boolean | null
+          message_content: string
+          metadata?: Json | null
+          response_time?: unknown | null
+          sender: string
+          session_id?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          assistant_type?: string
+          created_at?: string
+          id?: string
+          is_verified?: boolean | null
+          message_content?: string
+          metadata?: Json | null
+          response_time?: unknown | null
+          sender?: string
+          session_id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       digirioh_app_whatsapp_chat_history: {
         Row: {
           id: number
