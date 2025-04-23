@@ -56,7 +56,7 @@ const AssistantChat = () => {
     
     return {
       sender: 'assistant' as 'assistant',
-      text: `Olá, ${displayName}! 👋 Sou o ${assistantName || 'Agente de Resultados Esportivos Oficiais'}.
+      text: `Olá, ${displayName}! 👋 Sou o Agente de ${assistantName || 'Agente de Resultados Esportivos Oficiais'}.
 
 Para verificar sua aposta contestada, por favor, forneça os seguintes detalhes:
 
