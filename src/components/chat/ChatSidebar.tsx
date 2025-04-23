@@ -1,11 +1,18 @@
+
 import { useState } from "react";
-import { History, Send, Trash2, ArchiveX, ChevronDown, ChevronUp, Search, Calendar, Filter } from "lucide-react";
+import { History, Send, Trash2, ArchiveX, ChevronDown, ChevronUp, Search, Calendar, Filter, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Tooltip,
   TooltipContent,
@@ -64,6 +71,7 @@ export const ChatSidebar = ({
 }: ChatSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [expandedReports, setExpandedReports] = useState<string[]>([]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +93,17 @@ export const ChatSidebar = ({
     }
   };
   
+  // Parse match data from verification report
+  const parseMatchData = (text: string): { teams?: string, date?: string } => {
+    const teamsMatch = text.match(/Times:\s*([^\n]+)/);
+    const dateMatch = text.match(/Data:\s*([^\n]+)/);
+    
+    return {
+      teams: teamsMatch ? teamsMatch[1].trim() : undefined,
+      date: dateMatch ? dateMatch[1].trim() : undefined
+    };
+  };
+  
   // Filter and search history
   const filteredHistory = chatHistory.filter(msg => {
     // First filter for verification reports only
@@ -103,16 +122,13 @@ export const ChatSidebar = ({
     return matchesSearch && matchesFilter;
   });
   
-  // Select all visible items
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const visibleIds = filteredHistory
-        .filter(msg => msg.id)
-        .map(msg => msg.id as string);
-      onToggleHistorySelection("", true);
-    } else {
-      onToggleHistorySelection("", false);
-    }
+  // Toggle expanded state of a report
+  const toggleReportExpansion = (id: string) => {
+    setExpandedReports(prev => 
+      prev.includes(id) 
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
+    );
   };
   
   return (
@@ -123,15 +139,17 @@ export const ChatSidebar = ({
             <TooltipTrigger asChild>
               <Button 
                 variant="ghost" 
-                className="flex-1 min-w-[160px]"
+                className="flex-1 min-w-[160px] break-words"
                 onClick={onToggleHistoryPanel}
               >
-                <History className="h-4 w-4 mr-2" />
-                {isHistoryPanelVisible ? (
-                  <>Fechar Histórico <ChevronUp className="h-4 w-4 ml-1" /></>
-                ) : (
-                  <>Expandir Histórico <ChevronDown className="h-4 w-4 ml-1" /></>
-                )}
+                <History className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">
+                  {isHistoryPanelVisible ? (
+                    <>Fechar Histórico <ChevronUp className="h-4 w-4 ml-1 inline" /></>
+                  ) : (
+                    <>Expandir Histórico <ChevronDown className="h-4 w-4 ml-1 inline" /></>
+                  )}
+                </span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -143,8 +161,8 @@ export const ChatSidebar = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" onClick={onClearHistory} className="flex-1 min-w-[160px]">
-                <ArchiveX className="h-4 w-4 mr-2" />
-                Limpar Histórico
+                <ArchiveX className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">Limpar Histórico</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -213,38 +231,55 @@ export const ChatSidebar = ({
                 )}
                 
                 <div className="space-y-2">
-                  {/* Group messages by date */}
                   {filteredHistory.map((msg) => {
                     const date = msg.created_at ? new Date(msg.created_at) : new Date();
                     const formattedDate = formatSmartDate(date.toISOString());
+                    const { teams, date: matchDate } = parseMatchData(msg.text);
+                    const isExpanded = expandedReports.includes(msg.id || '');
                     
                     return (
                       <div 
                         key={msg.id} 
-                        className="flex items-start gap-2 p-2 rounded-md hover:bg-muted transition-colors"
+                        className="flex flex-col gap-2 p-2 rounded-md hover:bg-muted transition-colors"
                       >
-                        <Checkbox 
-                          id={`history-${msg.id}`} 
-                          checked={selectedHistoryIds.includes(msg.id || '')}
-                          onCheckedChange={(checked) => 
-                            onToggleHistorySelection(msg.id || '', checked === true)
-                          }
-                          className="mt-1"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-center mb-1">
-                            <Badge variant={msg.sender === 'user' ? "default" : "outline"} className="text-xs px-1.5 py-0">
-                              {msg.sender === 'user' ? 'Você' : 'Assistente'}
-                            </Badge>
-                            {msg.created_at && (
-                              <span className="text-xs text-muted-foreground flex items-center">
-                                <Calendar className="h-3 w-3 mr-1" />
+                        <div className="flex items-start gap-2">
+                          <Checkbox 
+                            id={`history-${msg.id}`} 
+                            checked={selectedHistoryIds.includes(msg.id || '')}
+                            onCheckedChange={(checked) => 
+                              onToggleHistorySelection(msg.id || '', checked === true)
+                            }
+                            className="mt-1"
+                          />
+                          
+                          <div 
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => toggleReportExpansion(msg.id || '')}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <Badge variant="outline" className="text-xs px-1.5 py-0">
                                 {formattedDate}
-                              </span>
-                            )}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium break-words">
+                                ⚽ {teams || 'Partida'} {matchDate ? `(📅 ${matchDate})` : ''}
+                              </p>
+                              <ChevronRight 
+                                className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                              />
+                            </div>
                           </div>
-                          <p className="text-sm line-clamp-2">{msg.text}</p>
                         </div>
+                        
+                        {isExpanded && (
+                          <div className="pl-7 pr-2 mt-1 border-l-2 border-muted-foreground/20">
+                            <div className="text-sm whitespace-pre-wrap break-words bg-background p-2 rounded-md">
+                              {msg.text}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -266,7 +301,7 @@ export const ChatSidebar = ({
           <div className="space-y-4">
             {userMessages.map((msg, index) => (
               <div key={index} className="flex justify-end">
-                <Card className="max-w-[90%] p-3 bg-primary text-primary-foreground rounded-br-none">
+                <Card className="max-w-[90%] p-3 bg-primary text-primary-foreground rounded-br-none break-words">
                   <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                 </Card>
               </div>

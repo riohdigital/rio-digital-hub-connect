@@ -61,7 +61,7 @@ const AssistantChat = () => {
         .select('id, message_content, sender, created_at')
         .eq('user_id', user.id)
         .eq('assistant_type', currentAssistant.id)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error("Error fetching chat history:", error);
@@ -187,6 +187,11 @@ const AssistantChat = () => {
     }
   }, [assistantType, navigate]);
   
+  // Check if the assistant response contains verification report
+  const containsVerificationReport = (text: string) => {
+    return text.includes("Relatório Interno de Verificação");
+  };
+  
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputValue.trim() || isLoading || !currentAssistant || !user?.id) return;
@@ -230,14 +235,22 @@ const AssistantChat = () => {
         
         setMessages(prev => [...prev, assistantMessage]);
         
-        await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
-          user_id: user.id,
-          assistant_type: currentAssistant.id,
-          message_content: assistantMessage.text,
-          sender: assistantMessage.sender,
-          status: 'processed',
-          response_time: `${responseTime} milliseconds`,
-        });
+        // Only save to history if it contains a verification report
+        if (containsVerificationReport(assistantMessage.text)) {
+          await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
+            user_id: user.id,
+            assistant_type: currentAssistant.id,
+            message_content: assistantMessage.text,
+            sender: assistantMessage.sender,
+            status: 'processed',
+            response_time: `${responseTime} milliseconds`,
+          });
+          
+          // Refresh history if panel is visible
+          if (isHistoryPanelVisible) {
+            fetchChatHistory();
+          }
+        }
       }
     } catch (err: any) {
       console.error("Error:", err);
