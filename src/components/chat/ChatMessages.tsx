@@ -1,9 +1,10 @@
 
-import { useRef, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Bot } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
+import { cn } from "@/lib/utils";
 
 interface Message {
   id?: string;
@@ -49,7 +50,14 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                   <Bot className="h-4 w-4 text-primary mt-1" aria-hidden="true" />
                   <span className="text-xs font-medium text-primary">Assistente</span>
                 </div>
-                <div className="text-sm prose-sm max-w-none">
+                <div className={cn(
+                  "text-sm prose-sm max-w-none",
+                  "leading-relaxed", // Increased line height
+                  "[&_ul]:space-y-2", // Add vertical spacing between list items
+                  "[&_li]:mb-2", // Add margin bottom to list items
+                  "[&_li>p]:leading-relaxed", // Improve line height within list items
+                  "tracking-tight" // Slightly tighten letter spacing for cleaner look
+                )}>
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
                 </div>
               </Card>
