@@ -87,6 +87,11 @@ export const ChatSidebar = ({
   
   // Filter and search history
   const filteredHistory = chatHistory.filter(msg => {
+    // First filter for verification reports only
+    const isVerificationReport = msg.text.includes("Relatório Interno de Verificação");
+    if (!isVerificationReport) return false;
+    
+    // Then apply search and sender filters
     const matchesSearch = searchQuery === "" || 
       msg.text.toLowerCase().includes(searchQuery.toLowerCase());
       

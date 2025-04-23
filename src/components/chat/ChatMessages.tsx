@@ -1,6 +1,7 @@
+
 import { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Loader2, Bot } from "lucide-react";
+import { Bot } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 
@@ -43,12 +44,12 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
               transition={{ duration: 0.3 }}
               className="flex justify-start"
             >
-              <Card className="max-w-[85%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm">
+              <Card className="max-w-[85%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm break-words">
                 <div className="flex items-start gap-2 mb-1">
                   <Bot className="h-4 w-4 text-primary mt-1" aria-hidden="true" />
                   <span className="text-xs font-medium text-primary">Assistente</span>
                 </div>
-                <div className="markdown-content text-sm whitespace-pre-wrap">
+                <div className="text-sm prose-sm max-w-none">
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
                 </div>
               </Card>
