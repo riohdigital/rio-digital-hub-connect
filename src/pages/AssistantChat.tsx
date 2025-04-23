@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,7 +30,7 @@ const assistantDisplayInfo: { [key: string]: { name: string, icon: string } } = 
 
 const AssistantChat = () => {
   const { assistantType } = useParams<{ assistantType: string }>();
-  const { user, profile } = useAuth(); // Acessando profile do AuthContext
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -48,40 +49,6 @@ const AssistantChat = () => {
   // Filter messages for sidebar and main chat area
   const userMessages = useMemo(() => messages.filter(msg => msg.sender === 'user'), [messages]);
   const assistantMessages = useMemo(() => messages.filter(msg => msg.sender === 'assistant'), [messages]);
-  
-  // Criar mensagem inicial personalizada com o nome do usuário
-  const getInitialMessage = useCallback((assistantName: string | undefined, userName: string | undefined | null) => {
-    // Define um nome fallback caso profile.full_name não exista
-    const displayName = userName?.split(' ')[0] || 'você'; // Usa o primeiro nome ou 'você'
-    
-    return {
-      sender: 'assistant' as 'assistant',
-      text: `Olá, ${displayName}! 👋 Sou o Assistente de ${assistantName || 'Agente de Resultados Esportivos Oficiais'}.
-
-Para verificar sua aposta contestada, por favor, forneça os seguintes detalhes:
-
-*   ⚽ **Jogo:** Time A vs Time B
-*   📅 **Data:** Formato YYYY-MM-DD (ex: 2023-10-28)
-*   📊 **Mercado:** Qual foi a aposta? (ex: Resultado Final, Total de Gols +2.5, Ambas Marcam)
-*   ✅ **Sua Seleção:** O que você escolheu? (ex: Empate, Mais de 2.5, Sim)
-
----
-
-Com base nos dados oficiais, posso verificar diversos resultados, como:
-
-*   🎯 **Partida:** Placar Final, 1X2, Dupla Chance, Intervalo/Final, Placar Correto.
-*   ⚽ **Gols:** Mais/Menos, Ambas Marcam (BTTS), Gols por Equipe/Tempo.
-*   🥅 **Jogador:** Marca Gol (Qualquer Momento, 1º/Último), Recebe Cartão.
-*   🟨 **Cartões:** Total, Por Equipe, Cartão Vermelho.
-*   📊 **Estatísticas:** Escanteios, Chutes, Posse (disponibilidade de detalhes por tempo pode variar).
-
----
-
-🔍 **Importante:** Estatísticas muito detalhadas por jogador (faltas, desarmes, assistências) ou eventos muito específicos de jogadores ainda estão indisponíveis pois ainda não acesso a esses dados oficiais.
-
-Aguardo as informações para iniciar a análise! 😊`
-    };
-  }, []);
   
   // Fetch chat history from Supabase
   const fetchChatHistory = useCallback(async () => {
@@ -201,28 +168,24 @@ Aguardo as informações para iniciar a análise! 😊`
     }
   }, [selectedHistoryIds, user, fetchChatHistory, toast]);
   
-  // Configura o assistente e a mensagem inicial personalizada quando o componente montar
   useEffect(() => {
     if (assistantType) {
       const displayInfo = assistantDisplayInfo[assistantType] || { name: assistantType, icon: '🤖' };
-      const assistantName = displayInfo.name;
       setCurrentAssistant({
         id: assistantType,
-        name: assistantName,
+        name: displayInfo.name,
         icon: displayInfo.icon,
       });
-      
-      // Usa o profile?.full_name se disponível para personalizar a mensagem
-      if (profile !== undefined) {
-        setMessages([getInitialMessage(assistantName, profile?.full_name)]);
-      }
-      
+      setMessages([{
+        sender: 'assistant',
+        text: `Olá! 👋 Sou o Agente de Resultados Esportivos Oficiais. Para verificar sua aposta, por favor, informe: ⚽ Jogo (Time A vs Time B), 📅 Data (YYYY-MM-DD), 📊 Mercado (ex: Placar Final) e ✅ Seleção (ex: Time A vence).`
+      }]);
       setError(null);
       setIsLoading(false);
     } else {
       navigate('/dashboard');
     }
-  }, [assistantType, navigate, profile, getInitialMessage]);
+  }, [assistantType, navigate]);
   
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -286,9 +249,10 @@ Aguardo as informações para iniciar a análise! 😊`
   
   const handleClearChat = () => {
     if (currentAssistant) {
-      // Personaliza a mensagem ao limpar o chat também
-      const assistantName = currentAssistant.name;
-      setMessages([getInitialMessage(assistantName, profile?.full_name)]);
+      setMessages([{
+        sender: 'assistant',
+        text: `Olá! 👋 Sou o Agente de Resultados Esportivos Oficiais. Para verificar sua aposta, por favor, informe: ⚽ Jogo (Time A vs Time B), 📅 Data (YYYY-MM-DD), 📊 Mercado (ex: Placar Final) e ✅ Seleção (ex: Time A vence).`
+      }]);
     }
     setInputValue("");
     setError(null);
