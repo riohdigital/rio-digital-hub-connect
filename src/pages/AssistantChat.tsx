@@ -77,9 +77,9 @@ Com base nos dados oficiais, posso verificar diversos resultados, como:
 
 ---
 
-🔍 **Importante:** Estatísticas muito detalhadas por jogador (faltas, desarmes, assistências) ou eventos muito específicos podem ter disponibilidade limitada nas fontes de dados.
+🔍 **Importante:** Estatísticas muito detalhadas por jogador (faltas, desarmes, assistências) ou eventos muito específicos de jogadores ainda estão indisponíveis pois ainda não acesso a esses dados oficiais.
 
-Aguardo seus dados para iniciar a análise! 😊`
+Aguardo as informações para iniciar a análise! 😊`
     };
   }, []);
   
