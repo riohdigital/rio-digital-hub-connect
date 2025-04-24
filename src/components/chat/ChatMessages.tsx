@@ -53,7 +53,7 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                 <div className={cn(
                   "text-sm prose-sm max-w-none", // Classes base mantidas
                   // "leading-relaxed", // Removido (ou tente "leading-normal")
-                  // "[&_ul]:space-y-2", // Removido
+                  "[&_ul]:space-y-2",
                   "[&_li]:mb-1",             // Mantido mb-2 ou ajustado para mb-1 (experimente)
                   // "[&_li>p]:leading-relaxed", // Removido
                   // "tracking-tight" // Removido
