@@ -51,12 +51,12 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                   <span className="text-xs font-medium text-primary">Assistente</span>
                 </div>
                 <div className={cn(
-                  "text-sm prose-sm max-w-none",
-                  "leading-relaxed", // Increased line height
-                  "[&_ul]:space-y-2", // Add vertical spacing between list items
-                  "[&_li]:mb-2", // Add margin bottom to list items
-                  "[&_li>p]:leading-relaxed", // Improve line height within list items
-                  "tracking-tight" // Slightly tighten letter spacing for cleaner look
+                  "text-sm prose-sm max-w-none", // Classes base mantidas
+                  // "leading-relaxed", // Removido (ou tente "leading-normal")
+                  // "[&_ul]:space-y-2", // Removido
+                  "[&_li]:mb-1",             // Mantido mb-2 ou ajustado para mb-1 (experimente)
+                  // "[&_li>p]:leading-relaxed", // Removido
+                  // "tracking-tight" // Removido
                 )}>
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
                 </div>
