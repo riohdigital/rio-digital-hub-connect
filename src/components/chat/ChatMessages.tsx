@@ -18,6 +18,19 @@ interface ChatMessagesProps {
   error: string | null;
 }
 
+// Componente personalizado para renderizar blocos de código no ReactMarkdown
+const CodeBlock = ({ className, children }: { className?: string, children: React.ReactNode }) => {
+  return (
+    <div className="my-2 w-full overflow-x-auto">
+      <pre className="p-2 bg-gray-800 rounded-md text-white overflow-x-auto whitespace-pre-wrap break-words w-full max-w-full">
+        <code className={cn("text-xs break-words whitespace-pre-wrap max-w-full", className)}>
+          {children}
+        </code>
+      </pre>
+    </div>
+  );
+};
+
 export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -27,6 +40,19 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isLoading]);
+
+  // Pré-processa mensagens para melhorar a formatação de blocos de código aninhados
+  const processMessageText = (text: string) => {
+    // Busca por blocos de código aninhados dentro de listas markdown
+    // Substitui o espaçamento de indentação para assegurar que o código seja renderizado corretamente
+    return text.replace(
+      /(\s{4,})(```[\s\S]*?```)/g, 
+      (match, indent, codeBlock) => {
+        // Reduz a indentação dos blocos de código dentro de listas para evitar problemas
+        return "\n" + codeBlock + "\n";
+      }
+    );
+  };
 
   return (
     <div 
@@ -44,30 +70,58 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
               transition={{ duration: 0.3 }}
               className="flex justify-start"
             >
-              <Card className="max-w-[85%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm break-words overflow-hidden">
-                <div className="flex items-start gap-2 mb-1">
+              <Card className="max-w-[90%] p-4 bg-muted text-muted-foreground rounded-bl-none shadow-sm break-words overflow-hidden">
+                <div className="flex items-start gap-2 mb-2">
                   <Bot className="h-4 w-4 text-primary mt-1" aria-hidden="true" />
                   <span className="text-xs font-medium text-primary">Assistente</span>
                 </div>
                 <div className={cn(
-                  "text-sm prose-sm max-w-none break-words whitespace-pre-wrap",
+                  "text-sm prose prose-sm max-w-none break-words whitespace-pre-wrap",
                   "overflow-hidden",
-                  "[&_ul]:space-y-2",
+                  "[&_ul]:space-y-2 [&_ul]:pl-5",
+                  "[&_ol]:space-y-2 [&_ol]:pl-5",
                   "[&_li]:mb-1",
-                  "[&_code]:break-words",
-                  "[&_code]:overflow-x-auto",
-                  "[&_pre]:overflow-x-auto",
-                  "[&_pre]:whitespace-pre-wrap",
-                  "[&_pre]:break-words",
-                  "[&_pre]:max-w-full",
-                  "[&_table]:table-auto",
-                  "[&_table]:max-w-full",
-                  "[&_table]:break-words",
-                  "[&_td]:break-words",
-                  "[&_td]:overflow-hidden",
-                  "[&_p]:break-words"
+                  "[&_li>p]:m-0 [&_li>p]:inline-block",
+                  "[&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold",
+                  "[&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold",
+                  "[&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold",
+                  "[&_hr]:my-4 [&_hr]:border-gray-200",
+                  "[&_p]:break-words [&_p]:mb-2",
+                  "[&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic"
                 )}>
-                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      code: ({ node, inline, className, children, ...props }) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return !inline ? (
+                          <CodeBlock className={match ? match[1] : ''}>
+                            {String(children).replace(/\n$/, '')}
+                          </CodeBlock>
+                        ) : (
+                          <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-800 break-words" {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                      pre: ({ children }) => <div className="not-prose">{children}</div>,
+                      ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
+                      li: ({ children }) => <li className="mb-1">{children}</li>,
+                      table: ({ children }) => (
+                        <div className="overflow-x-auto my-2">
+                          <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
+                            {children}
+                          </table>
+                        </div>
+                      ),
+                      thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
+                      tbody: ({ children }) => <tbody className="divide-y divide-gray-200">{children}</tbody>,
+                      th: ({ children }) => <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{children}</th>,
+                      td: ({ children }) => <td className="px-2 py-2 text-sm break-words">{children}</td>
+                    }}
+                  >
+                    {processMessageText(msg.text)}
+                  </ReactMarkdown>
                 </div>
               </Card>
             </motion.div>
