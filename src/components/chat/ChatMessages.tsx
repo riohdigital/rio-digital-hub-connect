@@ -78,8 +78,8 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                 <div className={cn(
                   "text-sm prose prose-sm max-w-none break-words whitespace-pre-wrap",
                   "overflow-hidden",
-                  "[&_ul]:space-y-2 [&_ul]:pl-5",
-                  "[&_ol]:space-y-2 [&_ol]:pl-5",
+                  "[&_ul]:space-y-0 [&_ul]:pl-5",
+                  "[&_ol]:space-y-0 [&_ol]:pl-5",
                   "[&_li]:mb-0",
                   "[&_li>p]:m-0 [&_li>p]:inline-block",
                   "[&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold",
