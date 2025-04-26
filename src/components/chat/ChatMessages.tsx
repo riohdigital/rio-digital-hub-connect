@@ -80,7 +80,7 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                   "overflow-hidden",
                   "[&_ul]:space-y-0 [&_ul]:pl-5",
                   "[&_ol]:space-y-0 [&_ol]:pl-5",
-                  "[&_li]:m-0",
+                  "[&_li]:my-0",
                   "[&_li>p]:m-0 [&_li>p]:inline-block",
                   "[&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold",
                   "[&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold",
