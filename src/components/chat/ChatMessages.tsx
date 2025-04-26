@@ -104,8 +104,8 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                         );
                       },
                       pre: ({ children }) => <div className="not-prose">{children}</div>,
-                      ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
+                      ul: ({ children }) => <ul className="list-disc pl-5">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-5">{children}</ol>,
                       li: ({ children }) => <li className="mb-1">{children}</li>,
                       table: ({ children }) => (
                         <div className="overflow-x-auto my-2">
