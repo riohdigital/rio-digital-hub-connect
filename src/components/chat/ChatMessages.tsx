@@ -77,17 +77,18 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                 </div>
                 <div className={cn(
                   "text-sm prose prose-sm max-w-none break-words whitespace-pre-wrap",
-                  "overflow-hidden",
-                  "[&_ul]:space-y-0 [&_ul]:pl-5",
-                  "[&_ol]:space-y-0 [&_ol]:pl-5",
-                  "[&_li]:my-0",
-                  "[&_li>p]:m-0 [&_li>p]:inline-block",
-                  "[&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold",
-                  "[&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold",
-                  "[&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold",
-                  "[&_hr]:my-4 [&_hr]:border-gray-200",
-                  "[&_p]:break-words [&_p]:mb-0",
-                  "[&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic"
+                  "overflow-hidden leading-tight", // Adicionar leading-tight para reduzir espaço entre linhas
+                  "[&_ul]:space-y-0 [&_ul]:pl-4 [&_ul]:my-1", // Reduzir padding e adicionar margem vertical mínima
+                  "[&_ol]:space-y-0 [&_ol]:pl-4 [&_ol]:my-1", // Reduzir padding e adicionar margem vertical mínima
+                  "[&_li]:my-0 [&_li]:py-0", // Eliminar margem vertical nos itens de lista
+                  "[&_li>p]:m-0 [&_li>p]:inline", // Fazer parágrafos dentro de listas ficarem inline
+                  "[&_h1]:mt-2 [&_h1]:mb-1 [&_h1]:text-lg [&_h1]:font-semibold", // Reduzir margens
+                  "[&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold", // Reduzir margens
+                  "[&_h3]:mt-1 [&_h3]:mb-0.5 [&_h3]:text-sm [&_h3]:font-semibold", // Reduzir margens
+                  "[&_hr]:my-2 [&_hr]:border-gray-200", // Reduzir margem vertical
+                  "[&_p]:break-words [&_p]:mb-1", // Reduzir margem inferior dos parágrafos
+                  "[&_p]:leading-snug", // Adicionar para reduzir espaçamento entre linhas dentro dos parágrafos
+                  "[&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:my-1"
                 )}>
                   <ReactMarkdown
                     components={{
