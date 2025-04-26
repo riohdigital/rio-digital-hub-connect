@@ -21,6 +21,10 @@ export default {
       typography: {
         DEFAULT: {
           css: {
+            // Adicione isso para diminuir o espaçamento entre linhas para todo o texto
+            lineHeight: '1.4', // Um valor menor que o padrão (geralmente 1.5 ou 1.6)
+            
+            // Suas configurações existentes para h1, h2, h3, etc.
             h1: {
               fontSize: '1.5rem',
               fontWeight: '600',
