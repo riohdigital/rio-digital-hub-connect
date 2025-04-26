@@ -86,7 +86,7 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                   "[&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold",
                   "[&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold",
                   "[&_hr]:my-4 [&_hr]:border-gray-200",
-                  "[&_p]:break-words [&_p]:mb-2",
+                  "[&_p]:break-words [&_p]:mb-0",
                   "[&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic"
                 )}>
                   <ReactMarkdown
