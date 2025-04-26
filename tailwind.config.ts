@@ -46,6 +46,10 @@ export default {
               marginBottom: '0rem',
               color: '#4b5563',
             },
+            p: {
+              marginTop: '0.25rem', // Margem mínima acima de parágrafos normais
+              marginBottom: '0.25rem', // Margem mínima abaixo de parágrafos normais
+            },
             'ul, ol': {
               marginTop: '0rem',
               marginBottom: '0rem',
@@ -53,6 +57,10 @@ export default {
             },
             li: {
               marginBottom: '0rem',
+            },
+            'li > p': {
+              marginTop: '0',
+              marginBottom: '0',
             },
             pre: {
               backgroundColor: '#f3f4f6',
