@@ -60,7 +60,7 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
       role="log" 
       aria-label="Mensagens do assistente"
     >
-      <div className="space-y-4 max-w-4xl mx-auto">
+      <div className="space-y-2 max-w-4xl mx-auto">
         <AnimatePresence>
           {messages.map((msg, index) => (
             <motion.div
@@ -70,8 +70,8 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
               transition={{ duration: 0.3 }}
               className="flex justify-start"
             >
-              <Card className="max-w-[90%] p-4 bg-muted text-muted-foreground rounded-bl-none shadow-sm break-words overflow-hidden">
-                <div className="flex items-start gap-2 mb-2">
+              <Card className="max-w-[90%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm break-words overflow-hidden">
+                <div className="flex items-start gap-2 mb-1">
                   <Bot className="h-4 w-4 text-primary mt-1" aria-hidden="true" />
                   <span className="text-xs font-medium text-primary">Assistente</span>
                 </div>
