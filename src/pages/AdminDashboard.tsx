@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAllUserProfiles, updateUserProfile, Profile, isUserAdmin } from '@/lib/supabase';
+import { getAllUserProfiles, updateUserProfile, Profile, isUserAdmin, getAvailableAssistants, Assistant } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import {
   Table,
@@ -31,8 +31,278 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Edit, Plus, Users } from 'lucide-react';
-import { format } from 'date-fns';
+import { Search, Edit, Plus, Users, RefreshCcw } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+
+// Componente para a tabela de usuários
+const UsersTable = ({ 
+  filteredProfiles,
+  isLoading,
+  handleEditUser,
+  toggleAgentAccess,
+  assistants
+}) => (
+  <div className="rounded-md border">
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>ID</TableHead>
+          <TableHead>Nome</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Plano</TableHead>
+          <TableHead>Role</TableHead>
+          <TableHead>WhatsApp</TableHead>
+          <TableHead>Acesso Agente</TableHead>
+          <TableHead>Ações</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {filteredProfiles.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={8} className="h-24 text-center">
+              {isLoading ? 'Carregando...' : 'Nenhum usuário encontrado.'}
+            </TableCell>
+          </TableRow>
+        ) : (
+          filteredProfiles.map((profile) => (
+            <TableRow key={profile.id}>
+              <TableCell className="font-mono text-xs">
+                {profile.id.substring(0, 8)}...
+              </TableCell>
+              <TableCell>
+                {profile.full_name || 'Não definido'}
+              </TableCell>
+              <TableCell>{profile.google_email || 'N/A'}</TableCell>
+              <TableCell>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                  ${profile.plan === 'pro' ? 'bg-blue-100 text-blue-800' : 
+                    profile.plan === 'premium' ? 'bg-purple-100 text-purple-800' : 
+                    'bg-gray-100 text-gray-800'}`}>
+                  {profile.plan || 'free'}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                  ${profile.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                  {profile.role || 'basic_user'}
+                </span>
+              </TableCell>
+              <TableCell>
+                {profile.whatsapp_jid ? (
+                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                    Conectado
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
+                    Não conectado
+                  </span>
+                )}
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant={profile.agent_access ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => toggleAgentAccess(profile)}
+                >
+                  {profile.agent_access ? 'Ativo' : 'Inativo'}
+                </Button>
+              </TableCell>
+              <TableCell>
+                <Button variant="ghost" size="icon" onClick={() => handleEditUser(profile)}>
+                  <Edit size={16} />
+                  <span className="sr-only">Editar</span>
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  </div>
+);
+
+// Componente para o modal de edição de usuário
+const EditUserDialog = ({
+  open,
+  onOpenChange,
+  currentProfile,
+  editFullName,
+  setEditFullName,
+  editPlan,
+  setEditPlan,
+  editRole,
+  setEditRole,
+  editAgentAccess,
+  setEditAgentAccess,
+  assistantsAccess,
+  setAssistantsAccess,
+  availableAssistants,
+  handleSaveEdit
+}) => (
+  <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="sm:max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Editar Usuário</DialogTitle>
+        <DialogDescription>
+          Atualize as informações do usuário. Clique em salvar quando terminar.
+        </DialogDescription>
+      </DialogHeader>
+      
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <label htmlFor="name" className="text-right text-sm font-medium">
+            Nome
+          </label>
+          <Input
+            id="name"
+            value={editFullName}
+            onChange={(e) => setEditFullName(e.target.value)}
+            className="col-span-3"
+          />
+        </div>
+        
+        <div className="grid grid-cols-4 items-center gap-4">
+          <label htmlFor="plan" className="text-right text-sm font-medium">
+            Plano
+          </label>
+          <Select value={editPlan} onValueChange={setEditPlan}>
+            <SelectTrigger className="col-span-3">
+              <SelectValue placeholder="Selecione um plano" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="basic">Basic</SelectItem>
+                <SelectItem value="pro">Pro</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="grid grid-cols-4 items-center gap-4">
+          <label htmlFor="role" className="text-right text-sm font-medium">
+            Role
+          </label>
+          <Select value={editRole} onValueChange={setEditRole}>
+            <SelectTrigger className="col-span-3">
+              <SelectValue placeholder="Selecione uma role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="basic_user">Usuário Básico</SelectItem>
+                <SelectItem value="admin">Administrador</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="grid grid-cols-4 items-center gap-4">
+          <label htmlFor="agent" className="text-right text-sm font-medium">
+            Acesso Agente
+          </label>
+          <div className="col-span-3 flex items-center space-x-2">
+            <Button
+              type="button"
+              variant={editAgentAccess ? "default" : "outline"}
+              onClick={() => setEditAgentAccess(true)}
+            >
+              Ativo
+            </Button>
+            <Button
+              type="button"
+              variant={!editAgentAccess ? "default" : "outline"}
+              onClick={() => setEditAgentAccess(false)}
+            >
+              Inativo
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 items-start gap-4">
+          <label className="text-right text-sm font-medium pt-1">
+            Assistentes
+          </label>
+          <div className="col-span-3 flex flex-col space-y-2">
+            {availableAssistants.map(assistant => (
+              <div key={assistant.id} className="flex items-center space-x-2">
+                <Checkbox 
+                  id={`assistant-${assistant.id}`}
+                  checked={assistantsAccess.includes(assistant.type)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setAssistantsAccess(prev => [...prev, assistant.type]);
+                    } else {
+                      setAssistantsAccess(prev => 
+                        prev.filter(type => type !== assistant.type)
+                      );
+                    }
+                  }}
+                />
+                <label 
+                  htmlFor={`assistant-${assistant.id}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {assistant.icon} {assistant.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <DialogFooter>
+        <Button variant="outline" onClick={() => onOpenChange(false)}>
+          Cancelar
+        </Button>
+        <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
+
+// Componente para o modal de convite de usuário
+const InviteUserDialog = ({
+  open,
+  onOpenChange,
+  inviteEmail,
+  setInviteEmail,
+  handleInviteUser
+}) => (
+  <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Convidar Novo Usuário</DialogTitle>
+        <DialogDescription>
+          Envie um email de convite para que um novo usuário se junte à plataforma.
+        </DialogDescription>
+      </DialogHeader>
+      
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <label htmlFor="email" className="text-right text-sm font-medium">
+            Email
+          </label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="usuario@exemplo.com"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            className="col-span-3"
+          />
+        </div>
+      </div>
+      
+      <DialogFooter>
+        <Button variant="outline" onClick={() => onOpenChange(false)}>
+          Cancelar
+        </Button>
+        <Button onClick={handleInviteUser}>Enviar Convite</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+);
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -44,6 +314,7 @@ const AdminDashboard = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [filteredProfiles, setFilteredProfiles] = useState<Profile[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [availableAssistants, setAvailableAssistants] = useState<Assistant[]>([]);
 
   // Estado para os modais
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -56,13 +327,16 @@ const AdminDashboard = () => {
   const [editPlan, setEditPlan] = useState('');
   const [editRole, setEditRole] = useState('');
   const [editAgentAccess, setEditAgentAccess] = useState(false);
+  const [assistantsAccess, setAssistantsAccess] = useState<string[]>([]);
 
   // Verificar se o usuário é administrador
   useEffect(() => {
     const checkAdminAccess = async () => {
       if (!loading && user) {
         try {
+          console.log("[AdminDashboard] Checking admin status for user:", user.id);
           const adminStatus = await isUserAdmin(user.id);
+          console.log("[AdminDashboard] Admin status:", adminStatus);
           setIsAdmin(adminStatus);
           
           if (!adminStatus) {
@@ -73,7 +347,8 @@ const AdminDashboard = () => {
             });
             navigate('/dashboard');
           } else {
-            loadProfiles();
+            await loadProfiles();
+            await loadAssistants();
           }
         } catch (error) {
           console.error('Erro ao verificar status de administrador:', error);
@@ -88,11 +363,28 @@ const AdminDashboard = () => {
     checkAdminAccess();
   }, [user, loading, navigate]);
 
+  // Carregar os assistentes disponíveis
+  const loadAssistants = async () => {
+    try {
+      const assistants = await getAvailableAssistants();
+      setAvailableAssistants(assistants);
+    } catch (error) {
+      console.error('Erro ao carregar assistentes:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os assistentes.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Carregar os perfis de usuários
   const loadProfiles = async () => {
     setIsLoading(true);
     try {
+      console.log("[AdminDashboard] Loading all user profiles");
       const data = await getAllUserProfiles();
+      console.log("[AdminDashboard] Profiles loaded:", data.length);
       setProfiles(data);
       setFilteredProfiles(data);
     } catch (error) {
@@ -128,6 +420,11 @@ const AdminDashboard = () => {
     setEditPlan(profile.plan || 'free');
     setEditRole(profile.role || 'basic_user');
     setEditAgentAccess(profile.agent_access || false);
+    
+    // Recuperar assistentes associados ao usuário a partir dos userPlans
+    const userAssistantTypes = profile.plan?.split(',') || [];
+    setAssistantsAccess(userAssistantTypes);
+    
     setEditDialogOpen(true);
   };
 
@@ -136,9 +433,12 @@ const AdminDashboard = () => {
     if (!currentProfile) return;
     
     try {
+      // Combinando os assistentes selecionados em uma string para o campo plan
+      const planValue = assistantsAccess.length > 0 ? assistantsAccess.join(',') : editPlan;
+      
       const updatedProfile = await updateUserProfile(currentProfile.id, {
         full_name: editFullName,
-        plan: editPlan,
+        plan: planValue,
         role: editRole,
         agent_access: editAgentAccess,
       });
@@ -241,9 +541,14 @@ const AdminDashboard = () => {
               <CardTitle className="text-3xl font-bold">Painel de Administração</CardTitle>
               <CardDescription>Gerencie usuários, acessos e planos</CardDescription>
             </div>
-            <Button onClick={() => setInviteDialogOpen(true)} className="flex items-center">
-              <Plus size={16} className="mr-1" /> Convidar Usuário
-            </Button>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={loadProfiles} className="flex items-center">
+                <RefreshCcw size={16} className="mr-1" /> Atualizar
+              </Button>
+              <Button onClick={() => setInviteDialogOpen(true)} className="flex items-center">
+                <Plus size={16} className="mr-1" /> Convidar Usuário
+              </Button>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -267,211 +572,42 @@ const AdminDashboard = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Plano</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>WhatsApp</TableHead>
-                  <TableHead>Acesso Agente</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProfiles.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
-                      {isLoading ? 'Carregando...' : 'Nenhum usuário encontrado.'}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProfiles.map((profile) => (
-                    <TableRow key={profile.id}>
-                      <TableCell className="font-mono text-xs">
-                        {profile.id.substring(0, 8)}...
-                      </TableCell>
-                      <TableCell>
-                        {profile.full_name || 'Não definido'}
-                      </TableCell>
-                      <TableCell>{profile.google_email || 'N/A'}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                          ${profile.plan === 'pro' ? 'bg-blue-100 text-blue-800' : 
-                            profile.plan === 'premium' ? 'bg-purple-100 text-purple-800' : 
-                            'bg-gray-100 text-gray-800'}`}>
-                          {profile.plan || 'free'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                          ${profile.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                          {profile.role || 'basic_user'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {profile.whatsapp_jid ? (
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                            Conectado
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
-                            Não conectado
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant={profile.agent_access ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => toggleAgentAccess(profile)}
-                        >
-                          {profile.agent_access ? 'Ativo' : 'Inativo'}
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => handleEditUser(profile)}>
-                          <Edit size={16} />
-                          <span className="sr-only">Editar</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <UsersTable 
+            filteredProfiles={filteredProfiles}
+            isLoading={isLoading}
+            handleEditUser={handleEditUser}
+            toggleAgentAccess={toggleAgentAccess}
+            assistants={availableAssistants}
+          />
         </CardContent>
       </Card>
 
-      {/* Modal de Edição de Usuário */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
-            <DialogDescription>
-              Atualize as informações do usuário. Clique em salvar quando terminar.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="name" className="text-right text-sm font-medium">
-                Nome
-              </label>
-              <Input
-                id="name"
-                value={editFullName}
-                onChange={(e) => setEditFullName(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="plan" className="text-right text-sm font-medium">
-                Plano
-              </label>
-              <Select value={editPlan} onValueChange={setEditPlan}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecione um plano" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="basic">Basic</SelectItem>
-                    <SelectItem value="pro">Pro</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="role" className="text-right text-sm font-medium">
-                Role
-              </label>
-              <Select value={editRole} onValueChange={setEditRole}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecione uma role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="basic_user">Usuário Básico</SelectItem>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="agent" className="text-right text-sm font-medium">
-                Acesso Agente
-              </label>
-              <div className="col-span-3 flex items-center space-x-2">
-                <Button
-                  type="button"
-                  variant={editAgentAccess ? "default" : "outline"}
-                  onClick={() => setEditAgentAccess(true)}
-                >
-                  Ativo
-                </Button>
-                <Button
-                  type="button"
-                  variant={!editAgentAccess ? "default" : "outline"}
-                  onClick={() => setEditAgentAccess(false)}
-                >
-                  Inativo
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveEdit}>Salvar Alterações</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modais */}
+      <EditUserDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        currentProfile={currentProfile}
+        editFullName={editFullName}
+        setEditFullName={setEditFullName}
+        editPlan={editPlan}
+        setEditPlan={setEditPlan}
+        editRole={editRole}
+        setEditRole={setEditRole}
+        editAgentAccess={editAgentAccess}
+        setEditAgentAccess={setEditAgentAccess}
+        assistantsAccess={assistantsAccess}
+        setAssistantsAccess={setAssistantsAccess}
+        availableAssistants={availableAssistants}
+        handleSaveEdit={handleSaveEdit}
+      />
 
-      {/* Modal de Convite de Usuário */}
-      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Convidar Novo Usuário</DialogTitle>
-            <DialogDescription>
-              Envie um email de convite para que um novo usuário se junte à plataforma.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="email" className="text-right text-sm font-medium">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="usuario@exemplo.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleInviteUser}>Enviar Convite</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <InviteUserDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        inviteEmail={inviteEmail}
+        setInviteEmail={setInviteEmail}
+        handleInviteUser={handleInviteUser}
+      />
     </div>
   );
 };

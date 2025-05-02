@@ -2,7 +2,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Menu, LogOut } from 'lucide-react';
+import { Menu, LogOut, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,7 @@ import {
 
 export function Navbar() {
   const { user, profile, signOut } = useAuth();
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
@@ -43,11 +44,20 @@ export function Navbar() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>
                   {profile?.full_name || user.email}
+                  {isAdmin && <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">Admin</span>}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard">Dashboard</Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Painel Admin
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => signOut()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out

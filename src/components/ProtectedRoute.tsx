@@ -5,8 +5,9 @@ import { Navbar } from "@/components/layout/Navbar";
 import { useEffect } from "react";
 
 export default function ProtectedRoute() {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
   
   // Enhanced debug logging
   useEffect(() => {
@@ -14,9 +15,12 @@ export default function ProtectedRoute() {
       loading, 
       isAuthenticated: !!user,
       userId: user?.id,
-      path: location.pathname
+      userProfile: profile,
+      isAdmin: profile?.role === 'admin',
+      path: location.pathname,
+      isAdminRoute
     });
-  }, [loading, user, location]);
+  }, [loading, user, profile, location, isAdminRoute]);
 
   // Show loading indicator while authentication state is being determined
   if (loading) {
@@ -33,6 +37,12 @@ export default function ProtectedRoute() {
   if (!user) {
     console.log("[ProtectedRoute] User not authenticated, redirecting to login");
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // For admin routes, check if user has admin role
+  if (isAdminRoute && profile?.role !== 'admin') {
+    console.log("[ProtectedRoute] User is not admin, redirecting to dashboard");
+    return <Navigate to="/dashboard" replace />;
   }
 
   console.log("[ProtectedRoute] User is authenticated, rendering protected content");

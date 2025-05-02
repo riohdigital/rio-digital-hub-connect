@@ -1,3 +1,4 @@
+
 // src/lib/supabase.ts - VERSÃO ORIGINAL (CORRETA PARA ESTE SETUP)
 
 import { createClient, User, Session } from '@supabase/supabase-js'; // Mantenha imports de tipos se usados aqui
@@ -94,6 +95,42 @@ export const isUserAdmin = async (userId: string): Promise<boolean> => {
     console.error('Erro ao verificar função de administrador:', error);
     return false;
   }
+};
+
+// Função para obter os assistentes disponíveis
+export const getAvailableAssistants = async (): Promise<Assistant[]> => {
+  // No futuro, você pode buscar isso do Supabase
+  // Por enquanto, retornamos os assistentes hardcoded
+  return [
+    {
+      id: "1",
+      name: "Resultados Esportivos Oficiais",
+      description: "Obtenha os resultados mais atualizados de partidas esportivas em tempo real.",
+      icon: "🏆",
+      type: "assistente_de_resultados_esportivos",
+    },
+    {
+      id: "2",
+      name: "DigiRioh",
+      description: "Assistente digital para otimização de processos e tomada de decisão.",
+      icon: "⚙️",
+      type: "digirioh",
+    },
+    {
+      id: "3",
+      name: "Agente do Booking",
+      description: "Otimize suas reservas e maximize sua ocupação com nosso assistente especializado.",
+      icon: "🏨",
+      type: "agente_do_booking",
+    },
+    {
+      id: "4",
+      name: "Agente de Airbnb",
+      description: "Maximize o potencial de seus imóveis no Airbnb com recomendações personalizadas.",
+      icon: "🏠",
+      type: "agente_de_airbnb",
+    }
+  ];
 };
 
 // --- Fim das Interfaces ---
