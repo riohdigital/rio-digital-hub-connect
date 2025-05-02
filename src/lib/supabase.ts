@@ -1,4 +1,3 @@
-
 // src/lib/supabase.ts - VERSÃO ORIGINAL (CORRETA PARA ESTE SETUP)
 
 import { createClient, User, Session } from '@supabase/supabase-js'; // Mantenha imports de tipos se usados aqui
@@ -17,7 +16,8 @@ export interface Profile {
   role?: string; 
   plan?: string;
   google_email?: string;
-  agent_access?: boolean; // Adicionando esta propriedade conforme solicitado
+  agent_access?: boolean;
+  whatsapp_jid?: string; // Adicionando esta propriedade que existe na tabela profiles
 }
 
 export interface UserPlan {
@@ -99,4 +99,4 @@ export const isUserAdmin = async (userId: string): Promise<boolean> => {
 // --- Fim das Interfaces ---
 
 // Exporta tipos também se precisar deles em outros lugares
-export type { User, Session }; 
+export type { User, Session };

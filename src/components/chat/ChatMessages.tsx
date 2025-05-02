@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Bot } from "lucide-react";
@@ -92,9 +93,9 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                 )}>
                   <ReactMarkdown
                     components={{
-                      code: ({ node, inline, className, children, ...props }) => {
+                      code: ({ node, className, children, ...props }) => {
                         const match = /language-(\w+)/.exec(className || '');
-                        return !inline ? (
+                        return !props.inline ? (
                           <CodeBlock className={match ? match[1] : ''}>
                             {String(children).replace(/\n$/, '')}
                           </CodeBlock>
