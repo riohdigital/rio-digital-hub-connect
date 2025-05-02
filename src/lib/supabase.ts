@@ -1,3 +1,4 @@
+
 // src/lib/supabase.ts - VERSÃO ORIGINAL (CORRETA PARA ESTE SETUP)
 
 import { createClient, User, Session } from '@supabase/supabase-js'; // Mantenha imports de tipos se usados aqui
@@ -15,6 +16,8 @@ export interface Profile {
   avatar_url?: string;
   role?: string; 
   plan?: string;
+  google_email?: string;
+  agent_access?: boolean; // Adicionando esta propriedade conforme solicitado
 }
 
 export interface UserPlan {
@@ -34,6 +37,65 @@ export interface Assistant {
   type: string; 
   webhook_url?: string;
 }
+
+// --- Funções auxiliares para a administração ---
+
+// Função para obter todos os perfis de usuário (para administradores)
+export const getAllUserProfiles = async (): Promise<Profile[]> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error('Erro ao buscar todos os perfis:', error);
+    throw error;
+  }
+
+  return data || [];
+};
+
+// Função para atualizar o perfil de um usuário específico (para administradores)
+export const updateUserProfile = async (
+  userId: string, 
+  updates: Partial<Profile>
+): Promise<Profile> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erro ao atualizar perfil:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+// Função para verificar se um usuário é administrador
+export const isUserAdmin = async (userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Erro ao verificar função de administrador:', error);
+      return false;
+    }
+
+    return data?.role === 'admin';
+  } catch (error) {
+    console.error('Erro ao verificar função de administrador:', error);
+    return false;
+  }
+};
+
 // --- Fim das Interfaces ---
 
 // Exporta tipos também se precisar deles em outros lugares
