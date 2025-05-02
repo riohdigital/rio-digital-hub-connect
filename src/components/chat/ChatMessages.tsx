@@ -95,7 +95,9 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                     components={{
                       code: ({ node, className, children, ...props }) => {
                         const match = /language-(\w+)/.exec(className || '');
-                        return !props.inline ? (
+                        // Type assertion for props to include inline property
+                        const isInline = (props as {inline?: boolean}).inline;
+                        return !isInline ? (
                           <CodeBlock className={match ? match[1] : ''}>
                             {String(children).replace(/\n$/, '')}
                           </CodeBlock>
@@ -166,3 +168,4 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
     </div>
   );
 };
+
