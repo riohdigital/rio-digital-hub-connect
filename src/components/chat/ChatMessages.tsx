@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Bot } from "lucide-react";
@@ -95,14 +94,14 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                     components={{
                       code: ({ node, className, children, ...props }) => {
                         const match = /language-(\w+)/.exec(className || '');
-                        // Type assertion for props to include inline property
-                        const isInline = (props as {inline?: boolean}).inline;
+                        // Use proper type assertion for ReactMarkdown props
+                        const isInline = (props as { inline?: boolean }).inline;
                         return !isInline ? (
                           <CodeBlock className={match ? match[1] : ''}>
                             {String(children).replace(/\n$/, '')}
                           </CodeBlock>
                         ) : (
-                          <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-800 break-words" {...props}>
+                          <code className={className} {...props}>
                             {children}
                           </code>
                         );
@@ -168,4 +167,3 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
     </div>
   );
 };
-
