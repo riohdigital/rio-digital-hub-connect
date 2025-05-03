@@ -39,7 +39,6 @@ const UsersTable = ({
   filteredProfiles,
   isLoading,
   handleEditUser,
-  toggleAgentAccess,
   assistants
 }) => (
   <div className="rounded-md border">
@@ -52,14 +51,13 @@ const UsersTable = ({
           <TableHead>Plano</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>WhatsApp</TableHead>
-          <TableHead>Acesso Agente</TableHead>
           <TableHead>Ações</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {filteredProfiles.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="h-24 text-center">
+            <TableCell colSpan={7} className="h-24 text-center">
               {isLoading ? 'Carregando...' : 'Nenhum usuário encontrado.'}
             </TableCell>
           </TableRow>
@@ -99,15 +97,6 @@ const UsersTable = ({
                 )}
               </TableCell>
               <TableCell>
-                <Button
-                  variant={profile.agent_access ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => toggleAgentAccess(profile)}
-                >
-                  {profile.agent_access ? 'Ativo' : 'Inativo'}
-                </Button>
-              </TableCell>
-              <TableCell>
                 <Button variant="ghost" size="icon" onClick={() => handleEditUser(profile)}>
                   <Edit size={16} />
                   <span className="sr-only">Editar</span>
@@ -132,8 +121,6 @@ const EditUserDialog = ({
   setEditPlan,
   editRole,
   setEditRole,
-  editAgentAccess,
-  setEditAgentAccess,
   assistantsAccess,
   setAssistantsAccess,
   availableAssistants,
@@ -195,28 +182,6 @@ const EditUserDialog = ({
               </SelectGroup>
             </SelectContent>
           </Select>
-        </div>
-        
-        <div className="grid grid-cols-4 items-center gap-4">
-          <label htmlFor="agent" className="text-right text-sm font-medium">
-            Acesso Agente
-          </label>
-          <div className="col-span-3 flex items-center space-x-2">
-            <Button
-              type="button"
-              variant={editAgentAccess ? "default" : "outline"}
-              onClick={() => setEditAgentAccess(true)}
-            >
-              Ativo
-            </Button>
-            <Button
-              type="button"
-              variant={!editAgentAccess ? "default" : "outline"}
-              onClick={() => setEditAgentAccess(false)}
-            >
-              Inativo
-            </Button>
-          </div>
         </div>
 
         <div className="grid grid-cols-4 items-start gap-4">
@@ -326,7 +291,6 @@ const AdminDashboard = () => {
   const [editFullName, setEditFullName] = useState('');
   const [editPlan, setEditPlan] = useState('');
   const [editRole, setEditRole] = useState('');
-  const [editAgentAccess, setEditAgentAccess] = useState(false);
   const [assistantsAccess, setAssistantsAccess] = useState<string[]>([]);
 
   // Verificar se o usuário é administrador
@@ -419,9 +383,8 @@ const AdminDashboard = () => {
     setEditFullName(profile.full_name || '');
     setEditPlan(profile.plan || 'free');
     setEditRole(profile.role || 'basic_user');
-    setEditAgentAccess(profile.agent_access || false);
     
-    // Recuperar assistentes associados ao usuário a partir dos userPlans
+    // Obter assistentes do usuário a partir da tabela user_plans
     const userAssistantTypes = profile.plan?.split(',') || [];
     setAssistantsAccess(userAssistantTypes);
     
@@ -433,15 +396,18 @@ const AdminDashboard = () => {
     if (!currentProfile) return;
     
     try {
-      // Combinando os assistentes selecionados em uma string para o campo plan
-      const planValue = assistantsAccess.length > 0 ? assistantsAccess.join(',') : editPlan;
-      
+      // Salvar assistentes selecionados diretamente na tabela user_plans
+      // Primeiro atualizamos o perfil
       const updatedProfile = await updateUserProfile(currentProfile.id, {
         full_name: editFullName,
-        plan: planValue,
         role: editRole,
-        agent_access: editAgentAccess,
+        plan: editPlan,
       });
+      
+      console.log("Assistentes selecionados:", assistantsAccess);
+      
+      // Agora criamos ou atualizamos os planos do usuário com base nos assistentes selecionados
+      await updateUserAssistants(currentProfile.id, assistantsAccess);
       
       // Atualizar a lista de perfis
       setProfiles(prevProfiles => 
@@ -454,6 +420,9 @@ const AdminDashboard = () => {
       });
       
       setEditDialogOpen(false);
+      
+      // Recarregar perfis após atualização
+      await loadProfiles();
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
       toast({
@@ -464,29 +433,77 @@ const AdminDashboard = () => {
     }
   };
 
-  // Função para alternar o acesso de agente diretamente na tabela
-  const toggleAgentAccess = async (profile: Profile) => {
+  // Função para atualizar os assistentes de um usuário
+  const updateUserAssistants = async (userId: string, assistantTypes: string[]) => {
     try {
-      const updatedProfile = await updateUserProfile(profile.id, {
-        agent_access: !profile.agent_access
-      });
-      
-      // Atualizar a lista de perfis
-      setProfiles(prevProfiles => 
-        prevProfiles.map(p => p.id === profile.id ? updatedProfile : p)
-      );
-      
-      toast({
-        title: "Sucesso",
-        description: `Acesso de agente ${updatedProfile.agent_access ? 'ativado' : 'desativado'} para ${profile.full_name}.`,
-      });
+      // Para cada tipo de assistente, criamos um registro em user_plans
+      // Esta função simples vai adicionar todos os assistentes selecionados
+      const { data: existingPlans, error: fetchError } = await supabase
+        .from('user_plans')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (fetchError) {
+        console.error("Erro ao buscar planos existentes:", fetchError);
+        throw fetchError;
+      }
+
+      // Calcular quais planos precisam ser adicionados e quais removidos
+      const existingTypes = existingPlans.map(plan => plan.plan_name);
+      const typesToAdd = assistantTypes.filter(type => !existingTypes.includes(type));
+      const typesToRemove = existingTypes.filter(type => !assistantTypes.includes(type) && type !== 'free');
+
+      console.log("Planos existentes:", existingTypes);
+      console.log("Planos para adicionar:", typesToAdd);
+      console.log("Planos para remover:", typesToRemove);
+
+      // Remover planos que não estão mais selecionados
+      if (typesToRemove.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('user_plans')
+          .delete()
+          .eq('user_id', userId)
+          .in('plan_name', typesToRemove);
+
+        if (deleteError) {
+          console.error("Erro ao remover planos:", deleteError);
+          throw deleteError;
+        }
+      }
+
+      // Adicionar novos planos
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+      for (const type of typesToAdd) {
+        const { error: insertError } = await supabase
+          .from('user_plans')
+          .insert({
+            user_id: userId,
+            plan_name: type,
+            expires_at: oneYearFromNow.toISOString()
+          });
+
+        if (insertError) {
+          console.error(`Erro ao adicionar plano ${type}:`, insertError);
+          throw insertError;
+        }
+      }
+
+      // Garantir que o plano 'free' sempre exista
+      if (!existingTypes.includes('free')) {
+        await supabase
+          .from('user_plans')
+          .insert({
+            user_id: userId,
+            plan_name: 'free',
+            expires_at: null
+          });
+      }
+
     } catch (error) {
-      console.error('Erro ao alternar acesso de agente:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível alterar o acesso de agente.",
-        variant: "destructive",
-      });
+      console.error('Erro ao atualizar assistentes do usuário:', error);
+      throw error;
     }
   };
 
@@ -576,7 +593,6 @@ const AdminDashboard = () => {
             filteredProfiles={filteredProfiles}
             isLoading={isLoading}
             handleEditUser={handleEditUser}
-            toggleAgentAccess={toggleAgentAccess}
             assistants={availableAssistants}
           />
         </CardContent>
@@ -593,8 +609,6 @@ const AdminDashboard = () => {
         setEditPlan={setEditPlan}
         editRole={editRole}
         setEditRole={setEditRole}
-        editAgentAccess={editAgentAccess}
-        setEditAgentAccess={setEditAgentAccess}
         assistantsAccess={assistantsAccess}
         setAssistantsAccess={setAssistantsAccess}
         availableAssistants={availableAssistants}

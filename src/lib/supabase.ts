@@ -1,5 +1,5 @@
 
-// src/lib/supabase.ts - VERSÃO ORIGINAL (CORRETA PARA ESTE SETUP)
+// src/lib/supabase.ts 
 
 import { createClient, User, Session } from '@supabase/supabase-js'; // Mantenha imports de tipos se usados aqui
 // Importa a instância criada e configurada em client.ts
@@ -61,6 +61,8 @@ export const updateUserProfile = async (
   userId: string, 
   updates: Partial<Profile>
 ): Promise<Profile> => {
+  console.log("Atualizando perfil do usuário:", userId, updates);
+  
   const { data, error } = await supabase
     .from('profiles')
     .update(updates)
@@ -100,7 +102,6 @@ export const isUserAdmin = async (userId: string): Promise<boolean> => {
 // Função para obter os assistentes disponíveis
 export const getAvailableAssistants = async (): Promise<Assistant[]> => {
   // No futuro, você pode buscar isso do Supabase
-  // Por enquanto, retornamos os assistentes hardcoded
   return [
     {
       id: "1",
@@ -133,7 +134,25 @@ export const getAvailableAssistants = async (): Promise<Assistant[]> => {
   ];
 };
 
+// Função para buscar os planos de um usuário específico
+export const getUserPlans = async (userId: string): Promise<UserPlan[]> => {
+  const today = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('user_plans')
+    .select('*')
+    .eq('user_id', userId)
+    .or(`expires_at.gte.${today},expires_at.is.null`);
+
+  if (error) {
+    console.error('Erro ao buscar planos do usuário:', error);
+    throw error;
+  }
+
+  return data || [];
+};
+
 // --- Fim das Interfaces ---
 
 // Exporta tipos também se precisar deles em outros lugares
 export type { User, Session };
+

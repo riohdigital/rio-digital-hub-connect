@@ -98,6 +98,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          agent_access: boolean | null
           avatar_url: string | null
           full_name: string | null
           google_access_token: string | null
@@ -112,6 +113,7 @@ export type Database = {
           whatsapp_jid: string | null
         }
         Insert: {
+          agent_access?: boolean | null
           avatar_url?: string | null
           full_name?: string | null
           google_access_token?: string | null
@@ -126,6 +128,7 @@ export type Database = {
           whatsapp_jid?: string | null
         }
         Update: {
+          agent_access?: boolean | null
           avatar_url?: string | null
           full_name?: string | null
           google_access_token?: string | null
@@ -293,6 +296,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       has_role: {
         Args: { user_id: string; role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
