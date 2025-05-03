@@ -1,6 +1,4 @@
 
-// src/lib/supabase.ts 
-
 import { createClient, User, Session } from '@supabase/supabase-js'; // Mantenha imports de tipos se usados aqui
 // Importa a instância criada e configurada em client.ts
 import { supabase as configuredSupabase } from '@/integrations/supabase/client'; 
@@ -157,19 +155,23 @@ export const manageUserAssistantPlans = async (
   assistantTypes: string[]
 ): Promise<boolean> => {
   try {
-    // Usando o método genérico .rpc() ao invés do método tipado
-    const { data, error } = await supabase
-      .rpc('manage_user_assistant_plans', {
+    console.log("Chamando função RPC para gerenciar planos:", userId, assistantTypes);
+    
+    // Usando chamada genérica para RPC sem depender de tipos
+    const { data, error } = await supabase.rpc(
+      'manage_user_assistant_plans',
+      {
         p_user_id: userId,
         p_assistant_types: assistantTypes
-      });
+      }
+    );
 
     if (error) {
       console.error('Erro ao gerenciar planos do usuário:', error);
       throw error;
     }
 
-    return true;
+    return data || true;
   } catch (error) {
     console.error('Erro ao atualizar planos do usuário:', error);
     throw error;
