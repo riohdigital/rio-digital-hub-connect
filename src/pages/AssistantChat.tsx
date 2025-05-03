@@ -178,7 +178,7 @@ const AssistantChat = () => {
       });
       setMessages([{
         sender: 'assistant',
-        text: `Olá! 👋 Sou o Agente de Resultados Esportivos Oficiais.
+        text: `Olá! 👋 Sou o Assistente de Resultados Esportivos Oficiais.
 
 Para verificar sua aposta contestada, por favor, forneça os seguintes detalhes:
 
@@ -186,21 +186,31 @@ Para verificar sua aposta contestada, por favor, forneça os seguintes detalhes:
 *   📅 **Data:** Formato YYYY-MM-DD
 *   📊 **Mercado da Aposta:** (ex: Resultado Final, Total de Gols Mais/Menos 2.5, Jogador X Marca)
 *   ✅ **Sua Seleção:** (ex: Time A Vence, Mais de 2.5, Sim)
-*   *(Opcional: Você pode informar se a aposta foi BACK (A Favor) ou LAY (Contra) e qual foi o resultado original (W/L))*
+*   *(Opcional: Você pode informar se a aposta foi BACK (A Favor) ou LAY (Contra) e qual foi o resultado original (Won/Lost))*
 
 ---
 
-Com base nos dados oficiais disponíveis, posso verificar uma ampla gama de resultados, incluindo:
+Com base nos dados oficiais disponíveis, posso verificar **mais de 50 tipos diferentes de resultados**, incluindo:
 
-🎯 **Resultados da Partida:** Placar Final, Resultado (1X2), Dupla Chance, Placar ao Intervalo (HT), Resultado Correto, Intervalo/Final do Jogo (HT/FT).
-⚽ **Gols:** Total de Gols (Mais/Menos), Ambas as Equipes Marcam (BTTS), Gols por Equipe, Gols por Tempo (HT/FT).
-🥅 **Eventos de Jogador:** Marcador de Gol (Qualquer Momento, 1º/Último, 2+ Gols), Jogador Recebe Cartão (Amarelo/Vermelho).
-🟨🟥 **Cartões:** Total de Cartões (Amarelo/Vermelho), Equipe com Mais Cartões, Cartão Vermelho na Partida.
-📊 **Estatísticas da Equipe:** Escanteios (Total, Por Equipe, Por Tempo), Chutes (Total, No Alvo), Posse de Bola, Faltas, Desarmes e mais. *(Detalhes por tempo dependem da fonte principal)*
+🎯 **Resultados da Partida:** Placar Final, Resultado (1X2), Dupla Chance, Placar ao Intervalo (HT), Resultado Correto, Intervalo/Final do Jogo (HT/FT), Equipe Sem Sofrer Gols (Clean Sheet), Margem de Vitória e mais.
+
+⚽ **Gols:** Total de Gols (Mais/Menos), Ambas as Equipes Marcam (BTTS), Gols por Equipe, Gols por Tempo (HT/FT), Primeira/Última Equipe a Marcar, Total Exato de Gols.
+
+🥅 **Eventos de Jogador:** Marcador de Gol (Qualquer Momento, 1º/Último, 2+ Gols - *inferimos chute a gol se houver gol*), Jogador Recebe Cartão (Amarelo/Vermelho).
+
+🟨🟥 **Cartões:** Total de Cartões (Amarelo/Vermelho/Pontos), Equipe com Mais Cartões, Cartão Vermelho na Partida, Cartões por Tempo (HT/FT - *dependendo da fonte*).
+
+📊 **Estatísticas da Equipe:** Escanteios (Total, Por Equipe, Por Tempo), Chutes Totais, Chutes no Alvo, Posse de Bola, Faltas Cometidas, Desarmes, Impedimentos e diversas outras estatísticas agregadas por time.
+
+⏱️ **Regras Especiais:** Podemos analisar regras como "2 UP" (se indicado no mercado) e "Substituição Segura" (para mercados de jogador qualificados).
 
 ---
 
-🔍 **Importante:** A verificação de resultados que exigem **estatísticas *individuais muito granulares por jogador*** (como número exato de faltas sofridas/cometidas, desarmes individuais, assistências confirmadas) pode ser limitada, pois essas informações detalhadas por jogador nem sempre estão disponíveis nas fontes de dados oficiais que consultamos. Nesses casos, faremos o possível para inferir o resultado ou informaremos claramente a limitação.
+🔍 **Importante:**
+*   A verificação de resultados que exigem **estatísticas individuais muito granulares por jogador** (como número exato de **chutes no alvo** de um jogador específicos, **faltas cometidas/sofridas** por jogadores individuais ou **desarmes individuais**) pode ser limitada, pois esses detalhes por jogador nem sempre estão disponíveis nas fontes oficiais das apis. Nesses casos, faremos o possível para inferir o resultado com base nos dados existentes ou informaremos claramente a limitação.
+*   Certos **mercados de estatísticas combinadas** (ex: "Chutes no Alvo de Fora da Área") podem não ser diretamente verificáveis se a API não fornecer essa combinação específica.
+
+*   **Nunca forneça dados confidenciais** como **ID’s únicos e/ou nomes de usuários**!
 
 Aguardo seus dados para iniciar a verificação! 😊`
       }]);
