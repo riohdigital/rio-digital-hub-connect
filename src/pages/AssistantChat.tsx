@@ -178,7 +178,31 @@ const AssistantChat = () => {
       });
       setMessages([{
         sender: 'assistant',
-        text: `Olá! 👋 Sou o Agente de Resultados Esportivos Oficiais. Para verificar sua aposta, por favor, informe: ⚽ Jogo (Time A vs Time B), 📅 Data (YYYY-MM-DD), 📊 Mercado (ex: Placar Final) e ✅ Seleção (ex: Time A vence).`
+        text: `Olá! 👋 Sou o Agente de Resultados Esportivos Oficiais.
+
+Para verificar sua aposta contestada, por favor, forneça os seguintes detalhes:
+
+*   ⚽ **Jogo:** Time A vs Time B
+*   📅 **Data:** Formato YYYY-MM-DD
+*   📊 **Mercado da Aposta:** (ex: Resultado Final, Total de Gols Mais/Menos 2.5, Jogador X Marca)
+*   ✅ **Sua Seleção:** (ex: Time A Vence, Mais de 2.5, Sim)
+*   *(Opcional: Você pode informar se a aposta foi BACK (A Favor) ou LAY (Contra) e qual foi o resultado original (W/L))*
+
+---
+
+Com base nos dados oficiais disponíveis, posso verificar uma ampla gama de resultados, incluindo:
+
+🎯 **Resultados da Partida:** Placar Final, Resultado (1X2), Dupla Chance, Placar ao Intervalo (HT), Resultado Correto, Intervalo/Final do Jogo (HT/FT).
+⚽ **Gols:** Total de Gols (Mais/Menos), Ambas as Equipes Marcam (BTTS), Gols por Equipe, Gols por Tempo (HT/FT).
+🥅 **Eventos de Jogador:** Marcador de Gol (Qualquer Momento, 1º/Último, 2+ Gols), Jogador Recebe Cartão (Amarelo/Vermelho).
+🟨🟥 **Cartões:** Total de Cartões (Amarelo/Vermelho), Equipe com Mais Cartões, Cartão Vermelho na Partida.
+📊 **Estatísticas da Equipe:** Escanteios (Total, Por Equipe, Por Tempo), Chutes (Total, No Alvo), Posse de Bola, Faltas, Desarmes e mais. *(Detalhes por tempo dependem da fonte principal)*
+
+---
+
+🔍 **Importante:** A verificação de resultados que exigem **estatísticas *individuais muito granulares por jogador*** (como número exato de faltas sofridas/cometidas, desarmes individuais, assistências confirmadas) pode ser limitada, pois essas informações detalhadas por jogador nem sempre estão disponíveis nas fontes de dados oficiais que consultamos. Nesses casos, faremos o possível para inferir o resultado ou informaremos claramente a limitação.
+
+Aguardo seus dados para iniciar a verificação! 😊`
       }]);
       setError(null);
       setIsLoading(false);
