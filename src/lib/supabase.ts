@@ -157,11 +157,12 @@ export const manageUserAssistantPlans = async (
   assistantTypes: string[]
 ): Promise<boolean> => {
   try {
-    // Função RPC que irá gerenciar os planos com privilégios de administrador
-    const { data, error } = await supabase.rpc('manage_user_assistant_plans', {
-      p_user_id: userId,
-      p_assistant_types: assistantTypes
-    });
+    // Usando o método genérico .rpc() ao invés do método tipado
+    const { data, error } = await supabase
+      .rpc('manage_user_assistant_plans', {
+        p_user_id: userId,
+        p_assistant_types: assistantTypes
+      });
 
     if (error) {
       console.error('Erro ao gerenciar planos do usuário:', error);

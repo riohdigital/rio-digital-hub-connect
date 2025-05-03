@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,9 +8,9 @@ import {
   isUserAdmin, 
   getAvailableAssistants, 
   Assistant,
-  manageUserAssistantPlans 
+  manageUserAssistantPlans,
+  supabase
 } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import {
   Table,

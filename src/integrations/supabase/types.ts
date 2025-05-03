@@ -308,6 +308,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: undefined
       }
+      manage_user_assistant_plans: {
+        Args: { p_user_id: string; p_assistant_types: string[] }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
