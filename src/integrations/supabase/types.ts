@@ -98,7 +98,7 @@ export type Database = {
       }
       profiles: {
         Row: {
-          agent_access: boolean | null
+          allowed_assistants: string[] | null
           avatar_url: string | null
           full_name: string | null
           google_access_token: string | null
@@ -113,7 +113,7 @@ export type Database = {
           whatsapp_jid: string | null
         }
         Insert: {
-          agent_access?: boolean | null
+          allowed_assistants?: string[] | null
           avatar_url?: string | null
           full_name?: string | null
           google_access_token?: string | null
@@ -128,7 +128,7 @@ export type Database = {
           whatsapp_jid?: string | null
         }
         Update: {
-          agent_access?: boolean | null
+          allowed_assistants?: string[] | null
           avatar_url?: string | null
           full_name?: string | null
           google_access_token?: string | null

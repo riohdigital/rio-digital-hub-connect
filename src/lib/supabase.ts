@@ -27,7 +27,7 @@ export interface UserPlan {
   plan_name: string; 
   created_at?: string;
   updated_at?: string;
-  expires_at: string; 
+  expires_at: string | null; 
 }
 
 export interface Assistant {
@@ -151,8 +151,68 @@ export const getUserPlans = async (userId: string): Promise<UserPlan[]> => {
   return data || [];
 };
 
-// --- Fim das Interfaces ---
+// Nova função para gerenciar planos de usuário usando rpc para contornar RLS
+export const manageUserAssistantPlans = async (
+  userId: string,
+  assistantTypes: string[]
+): Promise<boolean> => {
+  try {
+    // Função RPC que irá gerenciar os planos com privilégios de administrador
+    const { data, error } = await supabase.rpc('manage_user_assistant_plans', {
+      p_user_id: userId,
+      p_assistant_types: assistantTypes
+    });
+
+    if (error) {
+      console.error('Erro ao gerenciar planos do usuário:', error);
+      throw error;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar planos do usuário:', error);
+    throw error;
+  }
+};
+
+// Função para verificar se um usuário tem acesso a um assistente específico
+export const hasAssistantAccess = async (
+  userId: string,
+  assistantType: string
+): Promise<boolean> => {
+  // Primeiro verifica se o usuário tem plano pro (que dá acesso a todos os assistentes)
+  const { data: profileData, error: profileError } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', userId)
+    .single();
+    
+  if (profileError) {
+    console.error('Erro ao verificar plano do usuário:', profileError);
+    return false;
+  }
+  
+  // Se o usuário tem plano pro, tem acesso a todos os assistentes
+  if (profileData?.plan === 'pro') {
+    return true;
+  }
+  
+  // Caso contrário, verifica os planos específicos do usuário
+  const today = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('user_plans')
+    .select('plan_name')
+    .eq('user_id', userId)
+    .eq('plan_name', assistantType)
+    .or(`expires_at.gte.${today},expires_at.is.null`);
+    
+  if (error) {
+    console.error('Erro ao verificar acesso ao assistente:', error);
+    return false;
+  }
+  
+  return (data && data.length > 0);
+};
 
 // Exporta tipos também se precisar deles em outros lugares
 export type { User, Session };
-

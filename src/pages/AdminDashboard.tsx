@@ -1,7 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAllUserProfiles, updateUserProfile, Profile, isUserAdmin, getAvailableAssistants, Assistant } from '@/lib/supabase';
+import { 
+  getAllUserProfiles, 
+  updateUserProfile, 
+  Profile, 
+  isUserAdmin, 
+  getAvailableAssistants, 
+  Assistant,
+  manageUserAssistantPlans 
+} from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -378,15 +387,35 @@ const AdminDashboard = () => {
   }, [searchTerm, profiles]);
 
   // Função para abrir o modal de edição
-  const handleEditUser = (profile: Profile) => {
+  const handleEditUser = async (profile: Profile) => {
     setCurrentProfile(profile);
     setEditFullName(profile.full_name || '');
     setEditPlan(profile.plan || 'free');
     setEditRole(profile.role || 'basic_user');
     
-    // Obter assistentes do usuário a partir da tabela user_plans
-    const userAssistantTypes = profile.plan?.split(',') || [];
-    setAssistantsAccess(userAssistantTypes);
+    try {
+      // Buscar os planos/assistentes do usuário
+      const { data, error } = await supabase
+        .from('user_plans')
+        .select('plan_name')
+        .eq('user_id', profile.id);
+
+      if (error) {
+        console.error("Erro ao buscar planos existentes:", error);
+        throw error;
+      }
+
+      // Extrair os tipos de assistentes dos planos
+      const assistantTypes = data
+        .map(plan => plan.plan_name)
+        .filter(name => name !== 'free');
+
+      console.log("Assistentes do usuário:", assistantTypes);
+      setAssistantsAccess(assistantTypes);
+    } catch (error) {
+      console.error("Erro ao carregar assistentes do usuário:", error);
+      setAssistantsAccess([]);
+    }
     
     setEditDialogOpen(true);
   };
@@ -396,7 +425,6 @@ const AdminDashboard = () => {
     if (!currentProfile) return;
     
     try {
-      // Salvar assistentes selecionados diretamente na tabela user_plans
       // Primeiro atualizamos o perfil
       const updatedProfile = await updateUserProfile(currentProfile.id, {
         full_name: editFullName,
@@ -406,8 +434,8 @@ const AdminDashboard = () => {
       
       console.log("Assistentes selecionados:", assistantsAccess);
       
-      // Agora criamos ou atualizamos os planos do usuário com base nos assistentes selecionados
-      await updateUserAssistants(currentProfile.id, assistantsAccess);
+      // Usar a nova função RPC para gerenciar os assistentes
+      await manageUserAssistantPlans(currentProfile.id, assistantsAccess);
       
       // Atualizar a lista de perfis
       setProfiles(prevProfiles => 
@@ -430,80 +458,6 @@ const AdminDashboard = () => {
         description: "Não foi possível atualizar o perfil.",
         variant: "destructive",
       });
-    }
-  };
-
-  // Função para atualizar os assistentes de um usuário
-  const updateUserAssistants = async (userId: string, assistantTypes: string[]) => {
-    try {
-      // Para cada tipo de assistente, criamos um registro em user_plans
-      // Esta função simples vai adicionar todos os assistentes selecionados
-      const { data: existingPlans, error: fetchError } = await supabase
-        .from('user_plans')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (fetchError) {
-        console.error("Erro ao buscar planos existentes:", fetchError);
-        throw fetchError;
-      }
-
-      // Calcular quais planos precisam ser adicionados e quais removidos
-      const existingTypes = existingPlans.map(plan => plan.plan_name);
-      const typesToAdd = assistantTypes.filter(type => !existingTypes.includes(type));
-      const typesToRemove = existingTypes.filter(type => !assistantTypes.includes(type) && type !== 'free');
-
-      console.log("Planos existentes:", existingTypes);
-      console.log("Planos para adicionar:", typesToAdd);
-      console.log("Planos para remover:", typesToRemove);
-
-      // Remover planos que não estão mais selecionados
-      if (typesToRemove.length > 0) {
-        const { error: deleteError } = await supabase
-          .from('user_plans')
-          .delete()
-          .eq('user_id', userId)
-          .in('plan_name', typesToRemove);
-
-        if (deleteError) {
-          console.error("Erro ao remover planos:", deleteError);
-          throw deleteError;
-        }
-      }
-
-      // Adicionar novos planos
-      const oneYearFromNow = new Date();
-      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-      for (const type of typesToAdd) {
-        const { error: insertError } = await supabase
-          .from('user_plans')
-          .insert({
-            user_id: userId,
-            plan_name: type,
-            expires_at: oneYearFromNow.toISOString()
-          });
-
-        if (insertError) {
-          console.error(`Erro ao adicionar plano ${type}:`, insertError);
-          throw insertError;
-        }
-      }
-
-      // Garantir que o plano 'free' sempre exista
-      if (!existingTypes.includes('free')) {
-        await supabase
-          .from('user_plans')
-          .insert({
-            user_id: userId,
-            plan_name: 'free',
-            expires_at: null
-          });
-      }
-
-    } catch (error) {
-      console.error('Erro ao atualizar assistentes do usuário:', error);
-      throw error;
     }
   };
 
