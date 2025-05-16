@@ -69,33 +69,6 @@ export type Database = {
         }
         Relationships: []
       }
-      digirioh_app_whatsapp_chat_history_manual: {
-        Row: {
-          content: string | null
-          created_at: string
-          id: string
-          message_type: string
-          metadata: Json | null
-          session_id: string
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string
-          id?: string
-          message_type: string
-          metadata?: Json | null
-          session_id: string
-        }
-        Update: {
-          content?: string | null
-          created_at?: string
-          id?: string
-          message_type?: string
-          metadata?: Json | null
-          session_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           allowed_assistants: string[] | null

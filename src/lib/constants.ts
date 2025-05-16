@@ -1,4 +1,5 @@
 
+
 // This file contains constants used throughout the application
 
 export const WEBHOOK_URLS = {
@@ -12,6 +13,7 @@ export const ASSISTANT_TYPES = {
   DIGIRIOH: "digirioh",
   BOOKING_AGENT: "agente_do_booking",
   AIRBNB_AGENT: "agente_de_airbnb",
+  AIRBNB_PRICING_AGENT: "agente_airbnb_precificacao",
 };
 
 // Default assistant descriptions
@@ -20,4 +22,6 @@ export const ASSISTANT_DESCRIPTIONS = {
   [ASSISTANT_TYPES.DIGIRIOH]: "Assistente digital para otimização de processos e tomada de decisão.",
   [ASSISTANT_TYPES.BOOKING_AGENT]: "Otimize suas reservas e maximize sua ocupação com nosso assistente especializado.",
   [ASSISTANT_TYPES.AIRBNB_AGENT]: "Maximize o potencial de seus imóveis no Airbnb com recomendações personalizadas.",
+  [ASSISTANT_TYPES.AIRBNB_PRICING_AGENT]: "Otimize a precificação dos seus imóveis no Airbnb com análises de mercado em tempo real.",
 };
+

@@ -14,6 +14,7 @@ import AssistantChat from "./pages/AssistantChat"; // Usaremos este para todos
 import AdminDashboard from "./pages/AdminDashboard"; // Importamos o novo componente
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
+import AirbnbPricingAgentPage from "./pages/AirbnbPricingAgentPage"; // Importando a nova página
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,8 @@ const App = () => (
               <Route path="/assistants/:assistantType" element={<AssistantChat />} />
               {/* Rota de administração */}
               <Route path="/admin" element={<AdminDashboard />} />
+              {/* Nova rota para o Agente de Precificação Airbnb */}
+              <Route path="/airbnb-pricing-agent" element={<AirbnbPricingAgentPage />} />
             </Route>
 
             {/* Catch-all route */}

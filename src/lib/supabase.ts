@@ -17,6 +17,7 @@ export interface Profile {
   google_email?: string;
   agent_access?: boolean;
   whatsapp_jid?: string; // Adicionando esta propriedade que existe na tabela profiles
+  allowed_assistants?: string[]; // Array de assistentes permitidos
 }
 
 export interface UserPlan {
@@ -128,6 +129,13 @@ export const getAvailableAssistants = async (): Promise<Assistant[]> => {
       description: "Maximize o potencial de seus imóveis no Airbnb com recomendações personalizadas.",
       icon: "🏠",
       type: "agente_de_airbnb",
+    },
+    {
+      id: "5",
+      name: "Agente de Precificação Airbnb",
+      description: "Otimize a precificação dos seus imóveis no Airbnb com análises de mercado em tempo real.",
+      icon: "💰",
+      type: "agente_airbnb_precificacao",
     }
   ];
 };
@@ -186,7 +194,7 @@ export const hasAssistantAccess = async (
   // Primeiro verifica se o usuário tem plano pro (que dá acesso a todos os assistentes)
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
-    .select('plan')
+    .select('plan, allowed_assistants')
     .eq('id', userId)
     .single();
     
@@ -198,6 +206,13 @@ export const hasAssistantAccess = async (
   // Se o usuário tem plano pro, tem acesso a todos os assistentes
   if (profileData?.plan === 'pro') {
     return true;
+  }
+  
+  // Verifica se o assistente está na lista de assistentes permitidos
+  if (profileData?.allowed_assistants && Array.isArray(profileData.allowed_assistants)) {
+    if (profileData.allowed_assistants.includes(assistantType)) {
+      return true;
+    }
   }
   
   // Caso contrário, verifica os planos específicos do usuário
