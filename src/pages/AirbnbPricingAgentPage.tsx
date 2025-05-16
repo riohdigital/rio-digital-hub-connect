@@ -1,20 +1,19 @@
-import { useEffect, useState, ChangeEvent } from "react"; // Adicionado ChangeEvent
+import { useEffect, useState, ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-// Removido hasAssistantAccess se não for usado diretamente aqui e sim no ProtectedRoute/AuthProvider
 import { ASSISTANT_TYPES } from "@/lib/constants";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; // Adicionado CardFooter
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { PlusCircle, Home, Settings, AlertCircle, Loader2 } from "lucide-react"; // Adicionado Loader2
+import { PlusCircle, Home, Settings, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter as DialogFooterComponent, // Renomeado para evitar conflito com CardFooter
+  DialogFooter as DialogFooterComponent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -23,25 +22,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// Interface para propriedades do Airbnb (simplificada para o que exibimos inicialmente)
+// Interface para propriedades (o que exibimos inicialmente pode ser mínimo)
 interface AirbnbPropriedade {
   id: string; // Supabase ID
-  id_airbnb: string | null; // ID do Airbnb fornecido pelo usuário
+  id_airbnb: string | null; // ID do Airbnb que o usuário fornece
   nome_propriedade_interno: string;
-  titulo_anuncio_airbnb: string | null;
-  localizacao_cidade: string | null;
-  localizacao_bairro_area: string | null;
-  tipo_propriedade_airbnb: string | null;
-  numero_quartos_airbnb: number | null;
-  numero_banheiros_airbnb: number | null;
-  capacidade_hospedes_airbnb: number | null;
-  preco_noite_base_airbnb: number | null;
-  avaliacao_geral_media_airbnb: number | null;
+  // Os campos abaixo serão populados/atualizados pelo N8N
+  titulo_anuncio_airbnb?: string | null;
+  localizacao_cidade?: string | null;
+  localizacao_bairro_area?: string | null;
+  tipo_propriedade_airbnb?: string | null;
+  numero_quartos_airbnb?: number | null;
+  numero_banheiros_airbnb?: number | null;
+  capacidade_hospedes_airbnb?: number | null;
+  preco_noite_base_airbnb?: number | null;
+  avaliacao_geral_media_airbnb?: number | null;
   data_ultima_extracao_airbnb?: string | null; // Para saber se já foi detalhado
   id_usuario_proprietario?: string; // Adicionado para clareza
 }
 
-// Estado inicial para o formulário de nova propriedade
+// Estado inicial para o formulário de nova propriedade (simplificado)
 const initialNewPropertyState = {
   id_airbnb_input: '', // ID do Airbnb que o usuário digita
   nome_propriedade_interno: '', // Apelido
@@ -51,7 +51,7 @@ export default function AirbnbPricingAgentPage() {
   const { user, profile } = useAuth(); // Obtém o perfil completo do AuthContext
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [pageLoading, setPageLoading] = useState(true); // Renomeado de loading para evitar conflito
+  const [pageLoading, setPageLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const [propriedades, setPropriedades] = useState<AirbnbPropriedade[]>([]);
   const [loadingPropriedades, setLoadingPropriedades] = useState(false);
@@ -63,19 +63,20 @@ export default function AirbnbPricingAgentPage() {
   // Verificar acesso do usuário ao assistente
   useEffect(() => {
     console.log("[AirbnbPage] Verificando acesso...");
-    if (!user || !profile) { // Se o usuário ou perfil ainda não carregou no AuthContext
-      if (!profile && user) console.log("[AirbnbPage] Perfil ainda não carregado, aguardando...");
-      // O loading do AuthContext deve lidar com o estado inicial
-      // Se o loading do AuthContext terminou e não há usuário, redireciona
-      if (user === null && profile === null) { // Checa explicitamente por null após loading do AuthContext
-         console.log("[AirbnbPage] Usuário não logado, redirecionando para login.");
-         navigate("/login");
-      }
-      return; // Aguarda user e profile serem definidos pelo AuthProvider
+    if (!profile && user) { // Aguarda perfil se usuário existe
+      console.log("[AirbnbPage] Perfil ainda não carregado, aguardando...");
+      // Não seta pageLoading false aqui, pois esperamos o perfil
+      return;
+    }
+    if (!user) { // Se, após o AuthProvider carregar, não houver usuário
+      console.log("[AirbnbPage] Usuário não logado, redirecionando para login.");
+      if (!pageLoading) navigate("/login"); // Só navega se não estiver no loading inicial da página
+      setPageLoading(false); // Termina o loading se não houver usuário
+      return;
     }
 
     console.log("[AirbnbPage] Perfil do usuário:", profile);
-    const access = profile.allowed_assistants?.includes(ASSISTANT_TYPES.AIRBNB_PRICING_AGENT) || false;
+    const access = profile?.allowed_assistants?.includes(ASSISTANT_TYPES.AIRBNB_PRICING_AGENT) || false;
     setHasAccess(access);
 
     if (!access) {
@@ -85,16 +86,17 @@ export default function AirbnbPricingAgentPage() {
         description: "Você não tem permissão para acessar este assistente.",
         variant: "destructive",
       });
-      // navigate("/dashboard"); // Ou pode mostrar a mensagem de acesso negado na própria página
+      // Considerar redirecionar ou mostrar a mensagem de acesso negado na própria página
+      // navigate("/dashboard");
     }
     setPageLoading(false); // Termina o loading da página
-  }, [user, profile, navigate, toast]);
+  }, [user, profile, navigate, toast, pageLoading]);
 
 
   // Buscar propriedades do usuário
   useEffect(() => {
     const fetchPropriedades = async () => {
-      if (!user || !hasAccess) return;
+      if (!user || !hasAccess) return; // Só busca se tiver acesso e usuário
       console.log("[AirbnbPage] Buscando propriedades...");
       setLoadingPropriedades(true);
       try {
@@ -115,7 +117,8 @@ export default function AirbnbPricingAgentPage() {
             avaliacao_geral_media_airbnb,
             data_ultima_extracao_airbnb
           `)
-          .eq('id_usuario_proprietario', user.id); // Filtra pelo usuário logado
+          .eq('id_usuario_proprietario', user.id) // Filtra pelo usuário logado
+          .order('nome_propriedade_interno', { ascending: true }); // Ordena para consistência
 
         if (error) throw error;
         console.log("[AirbnbPage] Propriedades encontradas:", data);
@@ -132,7 +135,7 @@ export default function AirbnbPricingAgentPage() {
       }
     };
 
-    if (hasAccess) {
+    if (hasAccess && user) { // Adicionado user para garantir que não rode antes do user estar definido
       fetchPropriedades();
     }
   }, [hasAccess, user, toast]); // Adicionado user como dependência
@@ -146,8 +149,9 @@ export default function AirbnbPricingAgentPage() {
       toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
       return;
     }
-    if (!newPropertyData.id_airbnb_input.trim()) {
-      toast({ title: "Campo obrigatório", description: "ID do Airbnb do seu anúncio é obrigatório.", variant: "destructive" });
+    const idAirbnbInput = newPropertyData.id_airbnb_input.trim();
+    if (!idAirbnbInput) {
+      toast({ title: "Campo obrigatório", description: "ID do Anúncio Airbnb é obrigatório.", variant: "destructive" });
       return;
     }
 
@@ -155,103 +159,117 @@ export default function AirbnbPricingAgentPage() {
     let supabasePropertyId: string | null = null;
 
     try {
-      const initialPropertyDataToInsert = {
+      // PASSO 1: Inserção inicial MÍNIMA no Supabase
+      const propertyToInsert = {
         id_usuario_proprietario: user.id,
-        id_airbnb: newPropertyData.id_airbnb_input.trim(),
-        nome_propriedade_interno: newPropertyData.nome_propriedade_interno.trim() || `Propriedade ${newPropertyData.id_airbnb_input.trim()}`,
-        // Placeholders para campos NOT NULL que serão preenchidos pelo N8N
-        titulo_anuncio_airbnb: 'Aguardando dados do Airbnb...',
-        descricao_completa_airbnb: 'Aguardando dados do Airbnb...',
+        id_airbnb: idAirbnbInput,
+        nome_propriedade_interno: newPropertyData.nome_propriedade_interno.trim() || `Propriedade ${idAirbnbInput}`,
+        // Valores placeholder para campos NOT NULL que o N8N preencherá
+        // Garanta que estes campos existem na sua tabela airbnb_propriedades
+        // e que os tipos de dados correspondem.
+        titulo_anuncio_airbnb: 'Aguardando detalhes do Airbnb...',
+        descricao_completa_airbnb: 'Aguardando detalhes do Airbnb...',
         localizacao_cidade: 'Aguardando',
         localizacao_bairro_area: 'Aguardando',
-        latitude: 0,
-        longitude: 0,
+        latitude: 0.0,
+        longitude: 0.0,
         tipo_propriedade_airbnb: 'Aguardando',
-        url_anuncio_airbnb: `https://www.airbnb.com/rooms/${newPropertyData.id_airbnb_input.trim()}`,
+        url_anuncio_airbnb: `https://www.airbnb.com/rooms/${idAirbnbInput}`,
         numero_quartos_airbnb: 0,
         numero_banheiros_airbnb: 0,
         capacidade_hospedes_airbnb: 0,
         fotos_urls_airbnb: JSON.stringify([]),
         lista_comodidades_completa_airbnb: JSON.stringify([]),
-        regras_casa_airbnb: 'Aguardando dados do Airbnb...',
-        politica_cancelamento_airbnb: 'Aguardando dados do Airbnb...',
-        nome_anfitriao_airbnb: 'Aguardando dados do Airbnb...',
+        regras_casa_airbnb: 'Aguardando detalhes do Airbnb...',
+        politica_cancelamento_airbnb: 'Aguardando detalhes do Airbnb...',
+        nome_anfitriao_airbnb: 'Aguardando detalhes do Airbnb...',
         anfitriao_e_superhost_airbnb: false,
         preco_noite_base_airbnb: 0,
-        moeda_preco_noite_airbnb: 'BRL', // Ou um default que faça sentido
+        moeda_preco_noite_airbnb: 'BRL', // Defina um default ou peça ao usuário
         taxa_limpeza_airbnb: 0,
         taxa_servico_hospede_airbnb: 0,
-        impostos_incluidos_preco_airbnb: false,
+        impostos_incluidos_preco_airbnb: false, // Corrigido da análise de erro anterior
         estadia_minima_padrao_airbnb: 1,
-        avaliacao_geral_media_airbnb: null,
-        numero_total_avaliacoes_airbnb: 0,
-        data_ultima_extracao_airbnb: '1970-01-01T00:00:00Z', // Indica que precisa ser extraído
+        // avaliacao_geral_media_airbnb pode ser NULLABLE, então não precisa de placeholder se for
+        // numero_total_avaliacoes_airbnb pode ser NULLABLE ou default 0
+        data_ultima_extracao_airbnb: '1970-01-01T00:00:00Z', // Data antiga para indicar que precisa ser extraído
       };
-      console.log("[AirbnbPage] Inserindo propriedade inicial no Supabase:", initialPropertyDataToInsert);
+      console.log("[AirbnbPage] Inserindo propriedade inicial no Supabase:", propertyToInsert);
 
       const { data, error } = await supabase
         .from('airbnb_propriedades')
-        .insert([initialPropertyDataToInsert])
-        .select('id, nome_propriedade_interno, id_airbnb') // Seleciona o necessário
+        .insert([propertyToInsert])
+        .select('id, nome_propriedade_interno, id_airbnb, data_ultima_extracao_airbnb') // Seleciona o que precisamos para UI e webhook
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro Supabase ao inserir propriedade:", error);
+        // Tratar erro específico de ID Airbnb duplicado para este usuário (se houver constraint UNIQUE)
+        if (error.code === '23505' && error.message.includes('airbnb_propriedades_id_usuario_proprietario_id_airbnb_key')) { // Adapte nome da constraint
+            toast({ title: "Erro", description: "Este ID do Airbnb já foi cadastrado para sua conta.", variant: "destructive"});
+        } else {
+            throw error; // Re-lança outros erros para o catch geral
+        }
+        setIsSavingProperty(false); // Garante que o botão seja reabilitado
+        return; // Interrompe a execução aqui
+      }
 
       if (data) {
         supabasePropertyId = data.id;
         console.log("[AirbnbPage] Propriedade inserida no Supabase, ID:", supabasePropertyId);
-        // Atualiza a UI localmente para feedback imediato
-        setPropriedades(prev => [...prev, data as AirbnbPropriedade]);
+        // Adiciona à UI localmente com os dados mínimos + placeholder para data_ultima_extracao
+        // Garantir que o objeto 'data' tenha os campos esperados pela interface AirbnbPropriedade
+        const newPropForUI: AirbnbPropriedade = {
+            id: data.id,
+            id_airbnb: data.id_airbnb,
+            nome_propriedade_interno: data.nome_propriedade_interno,
+            data_ultima_extracao_airbnb: data.data_ultima_extracao_airbnb,
+            // Outros campos podem ser undefined ou null aqui, serão preenchidos após N8N
+        };
+        setPropriedades(prev => [...prev, newPropForUI]);
         toast({
           title: "Propriedade Adicionada!",
           description: `"${data.nome_propriedade_interno}" salva. Buscando detalhes completos do Airbnb...`,
         });
 
-        // Chamar Webhook do n8n para buscar detalhes
-        if (supabasePropertyId && newPropertyData.id_airbnb_input.trim()) {
+        // PASSO 2: Chamar Webhook do n8n para buscar detalhes
+        if (supabasePropertyId && idAirbnbInput) {
           console.log("[AirbnbPage] Chamando webhook N8N para detalhamento...");
-          try {
-            // Adicione um timeout para a chamada do webhook para não prender a UI
-            const webhookPromise = fetch('https://agentes-rioh-digital-n8n.sobntt.easypanel.host/webhook/71b48c1f-a614-437f-9286-0a94aea917ab', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id_airbnb_propriedade_supabase: supabasePropertyId,
-                id_airbnb: newPropertyData.id_airbnb_input.trim(),
-              }),
-            });
-            // Não esperamos (await) o webhook aqui para não bloquear a UI.
-            // O N8N pode demorar, o importante é que a chamada foi feita.
-             webhookPromise.then(response => {
-                 if (!response.ok) {
-                     console.error("Resposta não OK do webhook N8N:", response.status, response.statusText);
-                     // Não lançar erro aqui para não quebrar o fluxo do usuário, apenas logar
-                 } else {
-                     console.log("Webhook N8N chamado com sucesso (resposta inicial OK).");
-                 }
-             }).catch(webhookError => {
-                console.error("Erro ao chamar webhook N8N (fetch):", webhookError);
-             });
-
-          } catch (webhookError) { // Este catch pode não ser atingido se o fetch em si não lançar
-            console.error("Erro SÍNCRONO ao tentar chamar webhook n8n:", webhookError);
-            toast({
-              title: "Aviso",
-              description: "Propriedade salva, mas houve um erro ao iniciar a busca de detalhes. A busca pode tentar novamente em breve.",
-              variant: "default",
-            });
-          }
+          // Não usamos await aqui para não bloquear a UI. O N8N trabalha em background.
+          fetch('https://agentes-rioh-digital-n8n.sobntt.easypanel.host/webhook/dedc3361-13bd-4f44-bfb4-d714585ed8c4', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id_airbnb_propriedade_supabase: supabasePropertyId,
+              id_airbnb: idAirbnbInput,
+            }),
+          })
+          .then(response => {
+             if (!response.ok) {
+                 console.error("Resposta não OK do webhook N8N:", response.status, response.statusText);
+                 toast({ title: "Aviso", description: "A busca automática de detalhes encontrou um problema. Verifique mais tarde ou contate o suporte.", variant: "default"});
+             } else {
+                 console.log("Webhook N8N chamado com sucesso (resposta inicial OK). Detalhes serão atualizados em breve.");
+             }
+          })
+          .catch(webhookError => {
+            console.error("Erro na chamada fetch para webhook N8N:", webhookError);
+            toast({ title: "Aviso", description: "Erro de rede ao tentar buscar detalhes da propriedade. Verifique sua conexão.", variant: "default"});
+          });
         }
         setIsAddPropertyDialogOpen(false);
         setNewPropertyData(initialNewPropertyState); // Reseta o formulário
       }
-    } catch (error: any) {
-      console.error("Erro ao adicionar propriedade no Supabase:", error);
-      toast({
-        title: "Erro ao adicionar propriedade",
-        description: error.message || "Não foi possível salvar. Tente novamente.",
-        variant: "destructive",
-      });
+    } catch (error: any) { // Pega erros lançados (incluindo os do .insert() não tratados especificamente)
+      console.error("Erro geral em handleAddPropertySubmit:", error);
+      // Evita toast duplicado se já tratamos o erro de constraint única
+      if (!(error.code === '23505' && error.message.includes('airbnb_propriedades_id_usuario_proprietario_id_airbnb_key'))) {
+        toast({
+            title: "Erro ao adicionar propriedade",
+            description: error.message || "Não foi possível salvar. Tente novamente.",
+            variant: "destructive",
+        });
+      }
     } finally {
       setIsSavingProperty(false);
     }
@@ -304,10 +322,10 @@ export default function AirbnbPricingAgentPage() {
             <DialogHeader>
               <DialogTitle>Adicionar Nova Propriedade Airbnb</DialogTitle>
               <DialogDescription>
-                Forneça o ID do seu anúncio no Airbnb e um apelido. Buscaremos os detalhes.
+                Forneça o ID do seu anúncio no Airbnb e um apelido (opcional). Nós buscaremos os detalhes completos.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
+            <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="id_airbnb_input" className="text-right">ID do Anúncio*</Label>
                 <Input
@@ -316,7 +334,7 @@ export default function AirbnbPricingAgentPage() {
                   value={newPropertyData.id_airbnb_input}
                   onChange={handleNewPropertyChange}
                   className="col-span-3"
-                  placeholder="Ex: 12345678 (somente números)"
+                  placeholder="Ex: 12345678 (somente números do URL)"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -327,7 +345,7 @@ export default function AirbnbPricingAgentPage() {
                   value={newPropertyData.nome_propriedade_interno}
                   onChange={handleNewPropertyChange}
                   className="col-span-3"
-                  placeholder="Ex: Casa de Praia da Família (Opcional)"
+                  placeholder="Ex: Casa de Praia (Opcional)"
                 />
               </div>
             </div>
@@ -337,7 +355,7 @@ export default function AirbnbPricingAgentPage() {
               </DialogClose>
               <Button type="button" onClick={handleAddPropertySubmit} disabled={isSavingProperty}>
                 {isSavingProperty && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar e Buscar Detalhes
+                Adicionar e Buscar Detalhes
               </Button>
             </DialogFooterComponent>
           </DialogContent>
@@ -359,15 +377,15 @@ export default function AirbnbPricingAgentPage() {
                 <Card key={prop.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">{prop.nome_propriedade_interno || `Propriedade ID: ${prop.id_airbnb}`}</CardTitle>
-                    <CardDescription>{prop.localizacao_cidade || 'Cidade não informada'}, {prop.localizacao_bairro_area || 'Bairro não informado'}</CardDescription>
+                    <CardDescription>{prop.localizacao_cidade || 'Aguardando dados'}, {prop.localizacao_bairro_area || 'Aguardando dados'}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                       {prop.titulo_anuncio_airbnb !== 'Aguardando dados do Airbnb...' && prop.titulo_anuncio_airbnb && (
+                       {prop.titulo_anuncio_airbnb && prop.titulo_anuncio_airbnb !== 'Aguardando detalhes do Airbnb...' && (
                            <p className="text-sm text-muted-foreground italic">"{prop.titulo_anuncio_airbnb}"</p>
                        )}
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div><p className="text-muted-foreground">Tipo</p><p className="font-medium">{prop.tipo_propriedade_airbnb || 'N/D'}</p></div>
+                        <div><p className="text-muted-foreground">Tipo</p><p className="font-medium">{prop.tipo_propriedade_airbnb || 'Aguardando'}</p></div>
                         <div><p className="text-muted-foreground">Preço base</p><p className="font-medium">R$ {(prop.preco_noite_base_airbnb ?? 0).toFixed(2)}</p></div>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-sm">
@@ -376,10 +394,18 @@ export default function AirbnbPricingAgentPage() {
                         <div><p className="text-muted-foreground">Hóspedes</p><p className="font-medium">{prop.capacidade_hospedes_airbnb ?? 'N/D'}</p></div>
                       </div>
                       {prop.data_ultima_extracao_airbnb === '1970-01-01T00:00:00Z' && (
-                        <p className="text-xs text-amber-600">Aguardando busca de detalhes do Airbnb...</p>
+                        <div className="flex items-center text-xs text-amber-600 pt-2">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin"/>
+                            <span>Buscando detalhes completos do Airbnb...</span>
+                        </div>
+                      )}
+                       {prop.data_ultima_extracao_airbnb && prop.data_ultima_extracao_airbnb !== '1970-01-01T00:00:00Z' && (
+                        <p className="text-xs text-green-600 pt-2">Detalhes atualizados!</p>
                       )}
                       <Separator />
-                      <Button variant="outline" className="w-full" onClick={() => alert(`Detalhes da propriedade: ${prop.id}`)}>Ver Detalhes</Button>
+                      <Button variant="outline" className="w-full" onClick={() => alert(`Navegar para detalhes/calendário da propriedade: ${prop.id} - ID Airbnb: ${prop.id_airbnb}`)}>
+                        Gerenciar Precificação
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -392,12 +418,10 @@ export default function AirbnbPricingAgentPage() {
                 <CardDescription> Você ainda não cadastrou nenhuma propriedade. </CardDescription>
               </CardHeader>
               <CardContent>
-                 <Dialog open={isAddPropertyDialogOpen} onOpenChange={setIsAddPropertyDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="flex items-center gap-2"> <PlusCircle className="h-4 w-4" /> <span>Adicionar Sua Primeira Propriedade</span> </Button>
-                    </DialogTrigger>
-                    {/* O DialogContent é o mesmo definido acima */}
-                 </Dialog>
+                 <DialogTrigger asChild>
+                    <Button className="flex items-center gap-2"> <PlusCircle className="h-4 w-4" /> <span>Adicionar Sua Primeira Propriedade</span> </Button>
+                 </DialogTrigger>
+                 {/* O DialogContent para este botão é o mesmo definido acima, controlado por isAddPropertyDialogOpen */}
               </CardContent>
             </Card>
           )}
