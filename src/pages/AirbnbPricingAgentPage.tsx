@@ -418,9 +418,9 @@ export default function AirbnbPricingAgentPage() {
                 <CardDescription> Você ainda não cadastrou nenhuma propriedade. </CardDescription>
               </CardHeader>
               <CardContent>
-                 <DialogTrigger asChild>
-                    <Button className="flex items-center gap-2"> <PlusCircle className="h-4 w-4" /> <span>Adicionar Sua Primeira Propriedade</span> </Button>
-                 </DialogTrigger>
+                 <Button onClick={() => setIsAddPropertyDialogOpen(true)} className="flex items-center gap-2">
+                    <PlusCircle className="h-4 w-4" /> <span>Adicionar Sua Primeira Propriedade</span>
+                 </Button>
                  {/* O DialogContent para este botão é o mesmo definido acima, controlado por isAddPropertyDialogOpen */}
               </CardContent>
             </Card>
