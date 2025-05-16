@@ -16,42 +16,46 @@ import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import AirbnbPricingAgentPage from "./pages/AirbnbPricingAgentPage"; // Importando a nova página
 
-const queryClient = new QueryClient();
+// Fix: Create QueryClient inside a function component
+const App = () => {
+  // Create a new QueryClient instance inside the component
+  const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-            {/* Landing page */}
-            <Route path="/" element={<LandingPage />} />
+              {/* Landing page */}
+              <Route path="/" element={<LandingPage />} />
 
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              {/* Rota genérica para todos os assistentes */}
-              <Route path="/assistants/:assistantType" element={<AssistantChat />} />
-              {/* Rota de administração */}
-              <Route path="/admin" element={<AdminDashboard />} />
-              {/* Nova rota para o Agente de Precificação Airbnb */}
-              <Route path="/airbnb-pricing-agent" element={<AirbnbPricingAgentPage />} />
-            </Route>
+              {/* Protected routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                {/* Rota genérica para todos os assistentes */}
+                <Route path="/assistants/:assistantType" element={<AssistantChat />} />
+                {/* Rota de administração */}
+                <Route path="/admin" element={<AdminDashboard />} />
+                {/* Nova rota para o Agente de Precificação Airbnb */}
+                <Route path="/airbnb-pricing-agent" element={<AirbnbPricingAgentPage />} />
+              </Route>
 
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
