@@ -19,6 +19,11 @@ interface StructuredResponse {
   respostaCliente?: string;
 }
 
+interface IntermediateMessage {
+  isIntermediateMessage: boolean;
+  originalText: string;
+}
+
 interface ChatMessagesProps {
   messages: Message[];
   isLoading: boolean;
@@ -39,17 +44,24 @@ const CodeBlock = ({ className, children }: { className?: string, children: Reac
 };
 
 // Tenta analisar texto como JSON ou retorna null se não for válido
-const tryParseJSON = (text: string): StructuredResponse[] | null => {
+const tryParseJSON = (text: string) => {
   try {
     const parsed = JSON.parse(text);
-    // Verificamos se o resultado é um array e se tem os campos esperados
+    
+    // Verificamos se é uma mensagem intermediária
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].isIntermediateMessage) {
+      return { type: 'intermediate', data: parsed[0] };
+    }
+    
+    // Verificamos se é uma resposta estruturada com três blocos
     if (Array.isArray(parsed) && 
         parsed.length > 0 && 
         (parsed[0].relatorioInterno || 
          parsed[0].informacaoAgente || 
          parsed[0].respostaCliente)) {
-      return parsed;
+      return { type: 'structured', data: parsed[0] };
     }
+    
     return null;
   } catch (e) {
     return null;
@@ -89,6 +101,34 @@ const StructuredResponseView = ({ data }: { data: StructuredResponse }) => {
   );
 };
 
+// Componente para renderizar uma mensagem intermediária
+const IntermediateMessageView = ({ data }: { data: IntermediateMessage }) => {
+  return (
+    <div className="prose prose-sm max-w-none">
+      <ReactMarkdown
+        components={{
+          code: ({ node, className, children, ...props }) => {
+            const match = /language-(\w+)/.exec(className || '');
+            const isInline = (props as { inline?: boolean }).inline;
+            return !isInline ? (
+              <CodeBlock className={match ? match[1] : ''}>
+                {String(children).replace(/\n$/, '')}
+              </CodeBlock>
+            ) : (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            );
+          },
+          pre: ({ children }) => <div className="not-prose">{children}</div>,
+        }}
+      >
+        {data.originalText}
+      </ReactMarkdown>
+    </div>
+  );
+};
+
 export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -122,7 +162,7 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
         <AnimatePresence>
           {messages.map((msg, index) => {
             // Tenta analisar como JSON estruturado
-            const structuredData = tryParseJSON(msg.text);
+            const parsedResult = tryParseJSON(msg.text);
             
             return (
               <motion.div
@@ -138,9 +178,14 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                     <span className="text-xs font-medium text-primary">Assistente</span>
                   </div>
                   
-                  {structuredData ? (
-                    // Renderização para resposta estruturada
-                    <StructuredResponseView data={structuredData[0]} />
+                  {parsedResult ? (
+                    parsedResult.type === 'structured' ? (
+                      // Renderização para resposta estruturada com três blocos
+                      <StructuredResponseView data={parsedResult.data as StructuredResponse} />
+                    ) : (
+                      // Renderização para mensagem intermediária
+                      <IntermediateMessageView data={parsedResult.data as IntermediateMessage} />
+                    )
                   ) : (
                     // Renderização padrão para texto markdown
                     <div className={cn(

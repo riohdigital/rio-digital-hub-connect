@@ -223,10 +223,17 @@ Aguardo seus dados para iniciar a verificação! 😊`
   const isStructuredResponse = (text: string): boolean => {
     try {
       const parsed = JSON.parse(text);
-      return Array.isArray(parsed) && parsed.length > 0 && 
+      // Verificar se é uma mensagem estruturada com três blocos
+      const isThreeBlockResponse = Array.isArray(parsed) && parsed.length > 0 && 
              (parsed[0].relatorioInterno || 
               parsed[0].informacaoAgente || 
               parsed[0].respostaCliente);
+      
+      // Verificar se é uma mensagem intermediária
+      const isIntermediate = Array.isArray(parsed) && parsed.length > 0 && 
+             parsed[0].isIntermediateMessage;
+      
+      return isThreeBlockResponse || isIntermediate;
     } catch (e) {
       return false;
     }
