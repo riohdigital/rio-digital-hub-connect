@@ -64,6 +64,7 @@ const tryParseJSON = (text: string) => {
     
     return null;
   } catch (e) {
+    console.error("Erro ao analisar JSON:", e);
     return null;
   }
 };
