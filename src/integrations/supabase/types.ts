@@ -9,6 +9,183 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      airbnb_calendario_precos: {
+        Row: {
+          data_calendario: string
+          data_ultima_sugestao: string | null
+          id: string
+          id_evento_impactante: string | null
+          id_propriedade_airbnb: string
+          media_preco_concorrentes_pooling: number | null
+          nota_justificativa_sugestao: string | null
+          preco_atual_definido_usuario: number | null
+          preco_sugerido_agente: number | null
+          status_sugestao: string | null
+        }
+        Insert: {
+          data_calendario: string
+          data_ultima_sugestao?: string | null
+          id?: string
+          id_evento_impactante?: string | null
+          id_propriedade_airbnb: string
+          media_preco_concorrentes_pooling?: number | null
+          nota_justificativa_sugestao?: string | null
+          preco_atual_definido_usuario?: number | null
+          preco_sugerido_agente?: number | null
+          status_sugestao?: string | null
+        }
+        Update: {
+          data_calendario?: string
+          data_ultima_sugestao?: string | null
+          id?: string
+          id_evento_impactante?: string | null
+          id_propriedade_airbnb?: string
+          media_preco_concorrentes_pooling?: number | null
+          nota_justificativa_sugestao?: string | null
+          preco_atual_definido_usuario?: number | null
+          preco_sugerido_agente?: number | null
+          status_sugestao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airbnb_calendario_precos_id_evento_impactante_fkey"
+            columns: ["id_evento_impactante"]
+            isOneToOne: false
+            referencedRelation: "airbnb_eventos_locais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "airbnb_calendario_precos_id_propriedade_airbnb_fkey"
+            columns: ["id_propriedade_airbnb"]
+            isOneToOne: false
+            referencedRelation: "airbnb_propriedades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      airbnb_concorrentes_chave: {
+        Row: {
+          ativo_para_pooling: boolean
+          data_selecao: string
+          id: string
+          id_airbnb_concorrente: string
+          id_propriedade_airbnb: string
+          nome_anuncio_concorrente: string | null
+          url_airbnb_concorrente: string | null
+        }
+        Insert: {
+          ativo_para_pooling?: boolean
+          data_selecao?: string
+          id?: string
+          id_airbnb_concorrente: string
+          id_propriedade_airbnb: string
+          nome_anuncio_concorrente?: string | null
+          url_airbnb_concorrente?: string | null
+        }
+        Update: {
+          ativo_para_pooling?: boolean
+          data_selecao?: string
+          id?: string
+          id_airbnb_concorrente?: string
+          id_propriedade_airbnb?: string
+          nome_anuncio_concorrente?: string | null
+          url_airbnb_concorrente?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airbnb_concorrentes_chave_id_propriedade_airbnb_fkey"
+            columns: ["id_propriedade_airbnb"]
+            isOneToOne: false
+            referencedRelation: "airbnb_propriedades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      airbnb_eventos_locais: {
+        Row: {
+          data_descoberta: string
+          data_fim_evento: string | null
+          data_inicio_evento: string
+          fonte_informacao: string | null
+          id: string
+          id_usuario_contribuidor: string | null
+          localizacao_evento_bairro_venue: string | null
+          localizacao_evento_cidade: string
+          nivel_impacto_estimado: string | null
+          nome_evento: string
+          tipo_evento: string | null
+          url_evento: string | null
+        }
+        Insert: {
+          data_descoberta?: string
+          data_fim_evento?: string | null
+          data_inicio_evento: string
+          fonte_informacao?: string | null
+          id?: string
+          id_usuario_contribuidor?: string | null
+          localizacao_evento_bairro_venue?: string | null
+          localizacao_evento_cidade: string
+          nivel_impacto_estimado?: string | null
+          nome_evento: string
+          tipo_evento?: string | null
+          url_evento?: string | null
+        }
+        Update: {
+          data_descoberta?: string
+          data_fim_evento?: string | null
+          data_inicio_evento?: string
+          fonte_informacao?: string | null
+          id?: string
+          id_usuario_contribuidor?: string | null
+          localizacao_evento_bairro_venue?: string | null
+          localizacao_evento_cidade?: string
+          nivel_impacto_estimado?: string | null
+          nome_evento?: string
+          tipo_evento?: string | null
+          url_evento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airbnb_eventos_locais_id_usuario_contribuidor_fkey"
+            columns: ["id_usuario_contribuidor"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      airbnb_monitoramento_concorrentes: {
+        Row: {
+          data_coleta: string
+          data_referencia_preco: string
+          id: string
+          id_concorrente_airbnb_chave: string
+          preco_diaria_coletado_brl: number
+        }
+        Insert: {
+          data_coleta: string
+          data_referencia_preco: string
+          id?: string
+          id_concorrente_airbnb_chave: string
+          preco_diaria_coletado_brl: number
+        }
+        Update: {
+          data_coleta?: string
+          data_referencia_preco?: string
+          id?: string
+          id_concorrente_airbnb_chave?: string
+          preco_diaria_coletado_brl?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "airbnb_monitoramento_concorren_id_concorrente_airbnb_chave_fkey"
+            columns: ["id_concorrente_airbnb_chave"]
+            isOneToOne: false
+            referencedRelation: "airbnb_concorrentes_chave"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       airbnb_propriedades: {
         Row: {
           anfitriao_e_superhost_airbnb: boolean
@@ -17,17 +194,20 @@ export type Database = {
           data_criacao_registro: string
           data_ultima_extracao_airbnb: string
           descricao_completa_airbnb: string
+          detalhes_avaliacoes_airbnb: Json | null
           detalhes_avaliacoes_categorias_airbnb: Json | null
-          estadia_minima_padrao_airbnb: number
+          estadia_minima_padrao_airbnb: number | null
           fotos_urls_airbnb: Json
           id: string
           id_airbnb: string
           id_usuario_proprietario: string
+          impostos_incluidos_preco_airbnb: boolean | null
           latitude: number
           lista_comodidades_completa_airbnb: Json
           localizacao_bairro_area: string
           localizacao_cidade: string
           longitude: number
+          moeda_preco_noite_airbnb: string | null
           nome_anfitriao_airbnb: string
           nome_propriedade_interno: string
           numero_avaliacoes_total_airbnb: number | null
@@ -35,12 +215,13 @@ export type Database = {
           numero_quartos_airbnb: number
           politica_cancelamento_airbnb: string
           preco_base_manual_usuario: number | null
-          preco_noite_base_airbnb: number
+          preco_noite_base_airbnb: number | null
           regras_casa_airbnb: string
           taxa_limpeza_airbnb: number | null
+          taxa_servico_hospede_airbnb: number | null
           tipo_propriedade_airbnb: string
           titulo_anuncio_airbnb: string
-          url_airbnb: string | null
+          url_anuncio_airbnb: string | null
         }
         Insert: {
           anfitriao_e_superhost_airbnb: boolean
@@ -49,17 +230,20 @@ export type Database = {
           data_criacao_registro?: string
           data_ultima_extracao_airbnb: string
           descricao_completa_airbnb: string
+          detalhes_avaliacoes_airbnb?: Json | null
           detalhes_avaliacoes_categorias_airbnb?: Json | null
-          estadia_minima_padrao_airbnb: number
+          estadia_minima_padrao_airbnb?: number | null
           fotos_urls_airbnb: Json
           id?: string
           id_airbnb: string
           id_usuario_proprietario: string
+          impostos_incluidos_preco_airbnb?: boolean | null
           latitude: number
           lista_comodidades_completa_airbnb: Json
           localizacao_bairro_area: string
           localizacao_cidade: string
           longitude: number
+          moeda_preco_noite_airbnb?: string | null
           nome_anfitriao_airbnb: string
           nome_propriedade_interno: string
           numero_avaliacoes_total_airbnb?: number | null
@@ -67,12 +251,13 @@ export type Database = {
           numero_quartos_airbnb: number
           politica_cancelamento_airbnb: string
           preco_base_manual_usuario?: number | null
-          preco_noite_base_airbnb: number
+          preco_noite_base_airbnb?: number | null
           regras_casa_airbnb: string
           taxa_limpeza_airbnb?: number | null
+          taxa_servico_hospede_airbnb?: number | null
           tipo_propriedade_airbnb: string
           titulo_anuncio_airbnb: string
-          url_airbnb?: string | null
+          url_anuncio_airbnb?: string | null
         }
         Update: {
           anfitriao_e_superhost_airbnb?: boolean
@@ -81,17 +266,20 @@ export type Database = {
           data_criacao_registro?: string
           data_ultima_extracao_airbnb?: string
           descricao_completa_airbnb?: string
+          detalhes_avaliacoes_airbnb?: Json | null
           detalhes_avaliacoes_categorias_airbnb?: Json | null
-          estadia_minima_padrao_airbnb?: number
+          estadia_minima_padrao_airbnb?: number | null
           fotos_urls_airbnb?: Json
           id?: string
           id_airbnb?: string
           id_usuario_proprietario?: string
+          impostos_incluidos_preco_airbnb?: boolean | null
           latitude?: number
           lista_comodidades_completa_airbnb?: Json
           localizacao_bairro_area?: string
           localizacao_cidade?: string
           longitude?: number
+          moeda_preco_noite_airbnb?: string | null
           nome_anfitriao_airbnb?: string
           nome_propriedade_interno?: string
           numero_avaliacoes_total_airbnb?: number | null
@@ -99,12 +287,13 @@ export type Database = {
           numero_quartos_airbnb?: number
           politica_cancelamento_airbnb?: string
           preco_base_manual_usuario?: number | null
-          preco_noite_base_airbnb?: number
+          preco_noite_base_airbnb?: number | null
           regras_casa_airbnb?: string
           taxa_limpeza_airbnb?: number | null
+          taxa_servico_hospede_airbnb?: number | null
           tipo_propriedade_airbnb?: string
           titulo_anuncio_airbnb?: string
-          url_airbnb?: string | null
+          url_anuncio_airbnb?: string | null
         }
         Relationships: [
           {
@@ -376,6 +565,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_latest_chat_history_entry: {
+        Args: { p_user_id: string }
+        Returns: {
+          assistant_type: string
+          created_at: string
+          id: string
+          is_verified: boolean | null
+          message_content: string
+          metadata: Json | null
+          response_time: unknown | null
+          sender: string
+          session_id: string
+          status: string | null
+          user_id: string
+        }[]
+      }
       get_my_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -390,6 +595,14 @@ export type Database = {
       }
       manage_user_assistant_plans: {
         Args: { p_user_id: string; p_assistant_types: string[] }
+        Returns: boolean
+      }
+      user_owns_airbnb_property: {
+        Args: { property_id: string }
+        Returns: boolean
+      }
+      user_owns_concorrente_chave: {
+        Args: { p_id_concorrente_airbnb_chave: string }
         Returns: boolean
       }
     }

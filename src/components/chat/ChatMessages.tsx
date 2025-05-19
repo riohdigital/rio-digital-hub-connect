@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Bot } from "lucide-react";
@@ -10,6 +11,12 @@ interface Message {
   sender: 'user' | 'assistant';
   text: string;
   created_at?: string;
+}
+
+interface StructuredResponse {
+  relatorioInterno?: string;
+  informacaoAgente?: string;
+  respostaCliente?: string;
 }
 
 interface ChatMessagesProps {
@@ -27,6 +34,57 @@ const CodeBlock = ({ className, children }: { className?: string, children: Reac
           {children}
         </code>
       </pre>
+    </div>
+  );
+};
+
+// Tenta analisar texto como JSON ou retorna null se não for válido
+const tryParseJSON = (text: string): StructuredResponse[] | null => {
+  try {
+    const parsed = JSON.parse(text);
+    // Verificamos se o resultado é um array e se tem os campos esperados
+    if (Array.isArray(parsed) && 
+        parsed.length > 0 && 
+        (parsed[0].relatorioInterno || 
+         parsed[0].informacaoAgente || 
+         parsed[0].respostaCliente)) {
+      return parsed;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Componente para renderizar uma resposta estruturada
+const StructuredResponseView = ({ data }: { data: StructuredResponse }) => {
+  return (
+    <div className="space-y-4">
+      {/* Exibe apenas a resposta ao cliente como conteúdo principal */}
+      {data.respostaCliente && (
+        <div className="prose prose-sm max-w-none">
+          <ReactMarkdown
+            components={{
+              code: ({ node, className, children, ...props }) => {
+                const match = /language-(\w+)/.exec(className || '');
+                const isInline = (props as { inline?: boolean }).inline;
+                return !isInline ? (
+                  <CodeBlock className={match ? match[1] : ''}>
+                    {String(children).replace(/\n$/, '')}
+                  </CodeBlock>
+                ) : (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                );
+              },
+              pre: ({ children }) => <div className="not-prose">{children}</div>,
+            }}
+          >
+            {data.respostaCliente}
+          </ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 };
@@ -62,73 +120,85 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
     >
       <div className="space-y-2 max-w-4xl mx-auto">
         <AnimatePresence>
-          {messages.map((msg, index) => (
-            <motion.div
-              key={msg.id || index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex justify-start"
-            >
-              <Card className="max-w-[90%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm break-words overflow-hidden">
-                <div className="flex items-start gap-2 mb-1">
-                  <Bot className="h-4 w-4 text-primary mt-1" aria-hidden="true" />
-                  <span className="text-xs font-medium text-primary">Assistente</span>
-                </div>
-                <div className={cn(
-                  "text-sm prose prose-sm max-w-none break-words whitespace-pre-wrap",
-                  "overflow-hidden leading-tight", // Adicionar leading-tight para reduzir espaço entre linhas
-                  "[&_ul]:space-y-0 [&_ul]:pl-4 [&_ul]:my-1", // Reduzir padding e adicionar margem vertical mínima
-                  "[&_ol]:space-y-0 [&_ol]:pl-4 [&_ol]:my-1", // Reduzir padding e adicionar margem vertical mínima
-                  "[&_li]:my-0 [&_li]:py-0", // Eliminar margem vertical nos itens de lista
-                  "[&_li>p]:m-0 [&_li>p]:inline", // Fazer parágrafos dentro de listas ficarem inline
-                  "[&_h1]:mt-2 [&_h1]:mb-1 [&_h1]:text-lg [&_h1]:font-semibold", // Reduzir margens
-                  "[&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold", // Reduzir margens
-                  "[&_h3]:mt-1 [&_h3]:mb-0.5 [&_h3]:text-sm [&_h3]:font-semibold", // Reduzir margens
-                  "[&_hr]:my-2 [&_hr]:border-gray-200", // Reduzir margem vertical
-                  "[&_p]:break-words [&_p]:mb-1", // Reduzir margem inferior dos parágrafos
-                  "[&_p]:leading-snug", // Adicionar para reduzir espaçamento entre linhas dentro dos parágrafos
-                  "[&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:my-1"
-                )}>
-                  <ReactMarkdown
-                    components={{
-                      code: ({ node, className, children, ...props }) => {
-                        const match = /language-(\w+)/.exec(className || '');
-                        // Use proper type assertion for ReactMarkdown props
-                        const isInline = (props as { inline?: boolean }).inline;
-                        return !isInline ? (
-                          <CodeBlock className={match ? match[1] : ''}>
-                            {String(children).replace(/\n$/, '')}
-                          </CodeBlock>
-                        ) : (
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        );
-                      },
-                      pre: ({ children }) => <div className="not-prose">{children}</div>,
-                      ul: ({ children }) => <ul className="list-disc pl-5">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal pl-5">{children}</ol>,
-                      li: ({ children }) => <li className="mb-1">{children}</li>,
-                      table: ({ children }) => (
-                        <div className="overflow-x-auto my-2">
-                          <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
-                            {children}
-                          </table>
-                        </div>
-                      ),
-                      thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
-                      tbody: ({ children }) => <tbody className="divide-y divide-gray-200">{children}</tbody>,
-                      th: ({ children }) => <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{children}</th>,
-                      td: ({ children }) => <td className="px-2 py-2 text-sm break-words">{children}</td>
-                    }}
-                  >
-                    {processMessageText(msg.text)}
-                  </ReactMarkdown>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+          {messages.map((msg, index) => {
+            // Tenta analisar como JSON estruturado
+            const structuredData = tryParseJSON(msg.text);
+            
+            return (
+              <motion.div
+                key={msg.id || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex justify-start"
+              >
+                <Card className="max-w-[90%] p-3 bg-muted text-muted-foreground rounded-bl-none shadow-sm break-words overflow-hidden">
+                  <div className="flex items-start gap-2 mb-1">
+                    <Bot className="h-4 w-4 text-primary mt-1" aria-hidden="true" />
+                    <span className="text-xs font-medium text-primary">Assistente</span>
+                  </div>
+                  
+                  {structuredData ? (
+                    // Renderização para resposta estruturada
+                    <StructuredResponseView data={structuredData[0]} />
+                  ) : (
+                    // Renderização padrão para texto markdown
+                    <div className={cn(
+                      "text-sm prose prose-sm max-w-none break-words whitespace-pre-wrap",
+                      "overflow-hidden leading-tight", 
+                      "[&_ul]:space-y-0 [&_ul]:pl-4 [&_ul]:my-1", 
+                      "[&_ol]:space-y-0 [&_ol]:pl-4 [&_ol]:my-1", 
+                      "[&_li]:my-0 [&_li]:py-0", 
+                      "[&_li>p]:m-0 [&_li>p]:inline", 
+                      "[&_h1]:mt-2 [&_h1]:mb-1 [&_h1]:text-lg [&_h1]:font-semibold", 
+                      "[&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-base [&_h2]:font-semibold", 
+                      "[&_h3]:mt-1 [&_h3]:mb-0.5 [&_h3]:text-sm [&_h3]:font-semibold", 
+                      "[&_hr]:my-2 [&_hr]:border-gray-200", 
+                      "[&_p]:break-words [&_p]:mb-1", 
+                      "[&_p]:leading-snug", 
+                      "[&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:my-1"
+                    )}>
+                      <ReactMarkdown
+                        components={{
+                          code: ({ node, className, children, ...props }) => {
+                            const match = /language-(\w+)/.exec(className || '');
+                            // Use proper type assertion for ReactMarkdown props
+                            const isInline = (props as { inline?: boolean }).inline;
+                            return !isInline ? (
+                              <CodeBlock className={match ? match[1] : ''}>
+                                {String(children).replace(/\n$/, '')}
+                              </CodeBlock>
+                            ) : (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                          pre: ({ children }) => <div className="not-prose">{children}</div>,
+                          ul: ({ children }) => <ul className="list-disc pl-5">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal pl-5">{children}</ol>,
+                          li: ({ children }) => <li className="mb-1">{children}</li>,
+                          table: ({ children }) => (
+                            <div className="overflow-x-auto my-2">
+                              <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
+                                {children}
+                              </table>
+                            </div>
+                          ),
+                          thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
+                          tbody: ({ children }) => <tbody className="divide-y divide-gray-200">{children}</tbody>,
+                          th: ({ children }) => <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{children}</th>,
+                          td: ({ children }) => <td className="px-2 py-2 text-sm break-words">{children}</td>
+                        }}
+                      >
+                        {processMessageText(msg.text)}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                </Card>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
         {isLoading && (
           <motion.div 

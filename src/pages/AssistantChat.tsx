@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -209,7 +208,7 @@ Com base nos dados oficiais disponíveis, posso verificar **mais de 60 tipos dif
 🔍 **Importante:**
 *   A verificação de resultados que exigem **estatísticas individuais muito granulares por jogador** (como número exato de **chutes no alvo** de um jogador específicos, **faltas cometidas/sofridas** por jogadores individuais ou **desarmes individuais**) pode ser limitada, pois esses detalhes por jogador nem sempre estão disponíveis nas fontes oficiais das apis. Nesses casos, faremos o possível para inferir o resultado com base nos dados existentes ou informaremos claramente a limitação.
 
-*   **Nunca forneça dados confidenciais** como **ID’s únicos e/ou nomes de usuários**!
+*   **Nunca forneça dados confidenciais** como **ID's únicos e/ou nomes de usuários**!
 
 Aguardo seus dados para iniciar a verificação! 😊`
       }]);
@@ -220,9 +219,17 @@ Aguardo seus dados para iniciar a verificação! 😊`
     }
   }, [assistantType, navigate]);
   
-  // Check if the assistant response contains verification report
-  const containsVerificationReport = (text: string) => {
-    return text.includes("Relatório Interno de Verificação");
+  // Função para verificar se a resposta contém dados estruturados (JSON)
+  const isStructuredResponse = (text: string): boolean => {
+    try {
+      const parsed = JSON.parse(text);
+      return Array.isArray(parsed) && parsed.length > 0 && 
+             (parsed[0].relatorioInterno || 
+              parsed[0].informacaoAgente || 
+              parsed[0].respostaCliente);
+    } catch (e) {
+      return false;
+    }
   };
   
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -262,14 +269,18 @@ Aguardo seus dados para iniciar a verificação! 😊`
       
       if (response.ok) {
         const data = await response.json();
-        // First check for cleaned_text as requested
-        const assistantReply = data.cleaned_text || data.output || data.reply || "Desculpe, não consegui processar sua solicitação.";
-        const assistantMessage: Message = { sender: 'assistant', text: assistantReply };
+        // Verificar e processar a resposta que pode ser estruturada (JSON) ou texto simples
+        const rawResponse = data.cleaned_text || data.output || data.reply || "Desculpe, não consegui processar sua solicitação.";
         
+        // Criar a mensagem do assistente
+        const assistantMessage: Message = { sender: 'assistant', text: rawResponse };
         setMessages(prev => [...prev, assistantMessage]);
         
-        // Only save to history if it contains a verification report
-        if (containsVerificationReport(assistantMessage.text)) {
+        // Salvar no histórico, verificando se contém um relatório (seja formato texto ou JSON)
+        const shouldSaveToHistory = isStructuredResponse(rawResponse) || 
+                                   rawResponse.includes("Relatório Interno de Verificação");
+        
+        if (shouldSaveToHistory) {
           await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
             user_id: user.id,
             assistant_type: currentAssistant.id,
