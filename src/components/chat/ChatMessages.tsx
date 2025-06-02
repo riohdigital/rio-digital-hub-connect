@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Bot } from "lucide-react";
@@ -76,10 +75,8 @@ const tryParseJSON = (text: string) => {
     
     return null;
   } catch (e) {
-    // Apenas log em desenvolvimento, não em produção
-    if (process.env.NODE_ENV === 'development') {
-      console.log("Texto não é JSON válido:", text.substring(0, 50) + "...");
-    }
+    // Retorna null silenciosamente para texto que não é JSON válido
+    // Isso é esperado para mensagens de texto normais como a mensagem de boas-vindas
     return null;
   }
 };
@@ -203,7 +200,7 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
                       <IntermediateMessageView data={parsedResult.data as IntermediateMessage} />
                     )
                   ) : (
-                    // Renderização padrão para texto markdown
+                    // Renderização padrão para texto markdown (incluindo mensagem de boas-vindas)
                     <div className={cn(
                       "text-sm prose prose-sm max-w-none break-words whitespace-pre-wrap",
                       "overflow-hidden leading-tight", 
