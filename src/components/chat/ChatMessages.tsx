@@ -42,17 +42,31 @@ const CodeBlock = ({ className, children }: { className?: string, children: Reac
   );
 };
 
-// Verifica se o texto pode ser JSON antes de tentar fazer parse
-const couldBeJSON = (text: string): boolean => {
+// Verifica se o texto é definitivamente JSON válido
+const isValidJSON = (text: string): boolean => {
   const trimmedText = text.trim();
-  return (trimmedText.startsWith('[') && trimmedText.endsWith(']')) || 
-         (trimmedText.startsWith('{') && trimmedText.endsWith('}'));
+  
+  // Deve começar e terminar com chaves ou colchetes
+  const hasJSONBrackets = (trimmedText.startsWith('[') && trimmedText.endsWith(']')) || 
+                         (trimmedText.startsWith('{') && trimmedText.endsWith('}'));
+  
+  if (!hasJSONBrackets) {
+    return false;
+  }
+  
+  // Verificação adicional: deve conter palavras-chave específicas que esperamos
+  const hasExpectedKeys = trimmedText.includes('relatorioInterno') || 
+                         trimmedText.includes('informacaoAgente') || 
+                         trimmedText.includes('respostaCliente') ||
+                         trimmedText.includes('isIntermediateMessage');
+  
+  return hasExpectedKeys;
 };
 
-// Tenta analisar texto como JSON ou retorna null se não for válido
+// Tenta analisar texto como JSON APENAS se parecer ser JSON estruturado
 const tryParseJSON = (text: string) => {
-  // Primeiro, verifica se o texto parece ser JSON
-  if (!couldBeJSON(text)) {
+  // Primeiro, verifica se realmente parece ser JSON estruturado
+  if (!isValidJSON(text)) {
     return null;
   }
 
@@ -75,8 +89,7 @@ const tryParseJSON = (text: string) => {
     
     return null;
   } catch (e) {
-    // Retorna null silenciosamente para texto que não é JSON válido
-    // Isso é esperado para mensagens de texto normais como a mensagem de boas-vindas
+    // Se chegou até aqui, não deveria acontecer com nossa verificação mais rigorosa
     return null;
   }
 };
