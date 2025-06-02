@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -221,6 +222,15 @@ Aguardo seus dados para iniciar a verificação! 😊`
   
   // Função para verificar se a resposta contém dados estruturados (JSON)
   const isStructuredResponse = (text: string): boolean => {
+    // Primeiro, verifica se o texto parece ser JSON
+    const trimmedText = text.trim();
+    const couldBeJSON = (trimmedText.startsWith('[') && trimmedText.endsWith(']')) || 
+                       (trimmedText.startsWith('{') && trimmedText.endsWith('}'));
+    
+    if (!couldBeJSON) {
+      return false;
+    }
+
     try {
       const parsed = JSON.parse(text);
       
@@ -277,7 +287,22 @@ Aguardo seus dados para iniciar a verificação! 😊`
       const responseTime = endTime.getTime() - startTime.getTime();
       
       if (response.ok) {
-        const data = await response.json();
+        // Verificar se a resposta tem conteúdo antes de tentar fazer parse
+        const responseText = await response.text();
+        console.log("Raw API response:", responseText);
+        
+        if (!responseText || responseText.trim() === '') {
+          throw new Error('Resposta vazia do servidor');
+        }
+        
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error("Erro ao fazer parse da resposta JSON:", parseError);
+          throw new Error('Resposta do servidor não é um JSON válido');
+        }
+        
         // Verificar e processar a resposta que pode ser estruturada (JSON) ou texto simples
         const rawResponse = data.cleaned_text || data.output || data.reply || "Desculpe, não consegui processar sua solicitação.";
         
@@ -304,10 +329,12 @@ Aguardo seus dados para iniciar a verificação! 😊`
             fetchChatHistory();
           }
         }
+      } else {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
     } catch (err: any) {
       console.error("Error:", err);
-      setError(err.message);
+      setError(err.message || 'Erro ao processar a mensagem');
     } finally {
       setIsLoading(false);
     }

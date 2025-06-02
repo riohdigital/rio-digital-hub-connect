@@ -43,8 +43,20 @@ const CodeBlock = ({ className, children }: { className?: string, children: Reac
   );
 };
 
+// Verifica se o texto pode ser JSON antes de tentar fazer parse
+const couldBeJSON = (text: string): boolean => {
+  const trimmedText = text.trim();
+  return (trimmedText.startsWith('[') && trimmedText.endsWith(']')) || 
+         (trimmedText.startsWith('{') && trimmedText.endsWith('}'));
+};
+
 // Tenta analisar texto como JSON ou retorna null se não for válido
 const tryParseJSON = (text: string) => {
+  // Primeiro, verifica se o texto parece ser JSON
+  if (!couldBeJSON(text)) {
+    return null;
+  }
+
   try {
     const parsed = JSON.parse(text);
     
@@ -64,7 +76,10 @@ const tryParseJSON = (text: string) => {
     
     return null;
   } catch (e) {
-    console.error("Erro ao analisar JSON:", e);
+    // Apenas log em desenvolvimento, não em produção
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Texto não é JSON válido:", text.substring(0, 50) + "...");
+    }
     return null;
   }
 };

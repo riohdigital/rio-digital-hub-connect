@@ -365,6 +365,142 @@ export type Database = {
         }
         Relationships: []
       }
+      digirioh_incoming_message_queue: {
+        Row: {
+          grouped_message_id: number | null
+          id: number
+          message_id: string
+          message_timestamp: string
+          processed_text: string
+          received_at: string
+          status: string
+          whatsapp_jid: string
+        }
+        Insert: {
+          grouped_message_id?: number | null
+          id?: number
+          message_id: string
+          message_timestamp: string
+          processed_text: string
+          received_at?: string
+          status?: string
+          whatsapp_jid: string
+        }
+        Update: {
+          grouped_message_id?: number | null
+          id?: number
+          message_id?: string
+          message_timestamp?: string
+          processed_text?: string
+          received_at?: string
+          status?: string
+          whatsapp_jid?: string
+        }
+        Relationships: []
+      }
+      google_watch_channels: {
+        Row: {
+          calendar_id_watched: string
+          created_at: string
+          expiration_timestamp: string
+          google_channel_id: string
+          google_resource_id: string
+          id: string
+          last_sync_token: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          webhook_validation_token: string
+        }
+        Insert: {
+          calendar_id_watched?: string
+          created_at?: string
+          expiration_timestamp: string
+          google_channel_id: string
+          google_resource_id: string
+          id?: string
+          last_sync_token?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          webhook_validation_token: string
+        }
+        Update: {
+          calendar_id_watched?: string
+          created_at?: string
+          expiration_timestamp?: string
+          google_channel_id?: string
+          google_resource_id?: string
+          id?: string
+          last_sync_token?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          webhook_validation_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_watch_channels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_reminders: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_start_time: string | null
+          event_summary: string | null
+          google_event_id: string
+          id: number
+          message_to_send: string
+          reminder_timestamp: string
+          sent: boolean
+          sent_at: string | null
+          user_id: string
+          user_jid: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_start_time?: string | null
+          event_summary?: string | null
+          google_event_id: string
+          id?: number
+          message_to_send: string
+          reminder_timestamp: string
+          sent?: boolean
+          sent_at?: string | null
+          user_id: string
+          user_jid: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_start_time?: string | null
+          event_summary?: string | null
+          google_event_id?: string
+          id?: number
+          message_to_send?: string
+          reminder_timestamp?: string
+          sent?: boolean
+          sent_at?: string | null
+          user_id?: string
+          user_jid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_reminders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           allowed_assistants: string[] | null
@@ -412,6 +548,80 @@ export type Database = {
           whatsapp_jid?: string | null
         }
         Relationships: []
+      }
+      user_calendar_events: {
+        Row: {
+          attendees: Json | null
+          calendar_id: string
+          created_google: string | null
+          description: string | null
+          end_time: string | null
+          event_timezone: string | null
+          google_event_id: string
+          html_link: string | null
+          id: number
+          is_allday: boolean
+          location: string | null
+          organizer_email: string | null
+          reminders_override: Json | null
+          start_time: string | null
+          status: string | null
+          summary: string | null
+          synced_at: string
+          updated_google: string | null
+          user_id: string
+        }
+        Insert: {
+          attendees?: Json | null
+          calendar_id: string
+          created_google?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_timezone?: string | null
+          google_event_id: string
+          html_link?: string | null
+          id?: number
+          is_allday?: boolean
+          location?: string | null
+          organizer_email?: string | null
+          reminders_override?: Json | null
+          start_time?: string | null
+          status?: string | null
+          summary?: string | null
+          synced_at?: string
+          updated_google?: string | null
+          user_id: string
+        }
+        Update: {
+          attendees?: Json | null
+          calendar_id?: string
+          created_google?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_timezone?: string | null
+          google_event_id?: string
+          html_link?: string | null
+          id?: number
+          is_allday?: boolean
+          location?: string | null
+          organizer_email?: string | null
+          reminders_override?: Json | null
+          start_time?: string | null
+          status?: string | null
+          summary?: string | null
+          synced_at?: string
+          updated_google?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_calendar_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_last_location: {
         Row: {
