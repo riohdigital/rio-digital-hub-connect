@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { ChatMessages } from "@/components/chat/ChatMessages";
+import { LanguageSelector } from "@/components/chat/LanguageSelector";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,6 +20,8 @@ interface AssistantInfo {
   name: string;
   icon?: string;
 }
+
+type Language = 'portuguese' | 'english';
 
 const assistantDisplayInfo: { [key: string]: { name: string, icon: string } } = {
   "assistente_de_resultados_esportivos": { name: "Resultados Esportivos Oficiais", icon: "🏆" },
@@ -40,6 +42,7 @@ const AssistantChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentAssistant, setCurrentAssistant] = useState<AssistantInfo | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('portuguese');
   
   // History functionality
   const [isHistoryPanelVisible, setIsHistoryPanelVisible] = useState(false);
@@ -49,6 +52,89 @@ const AssistantChat = () => {
   // Filter messages for sidebar and main chat area
   const userMessages = useMemo(() => messages.filter(msg => msg.sender === 'user'), [messages]);
   const assistantMessages = useMemo(() => messages.filter(msg => msg.sender === 'assistant'), [messages]);
+
+  // Get webhook URL based on selected language
+  const getWebhookUrl = useCallback((language: Language) => {
+    const baseUrl = import.meta.env.VITE_N8N_WEBHOOK_URL;
+    return language === 'portuguese' 
+      ? `${baseUrl}/webhook/Portugues`
+      : `${baseUrl}/webhook/English`;
+  }, []);
+
+  // Get initial message based on language
+  const getInitialMessage = useCallback((language: Language) => {
+    if (language === 'portuguese') {
+      return `Olá! 👋 Sou o Assistente de Resultados Esportivos Oficiais.
+
+Para verificar sua aposta contestada, por favor, forneça os seguintes detalhes:
+
+*   ⚽ **Jogo:** Time A vs Time B
+*   📅 **Data:** Formato YYYY-MM-DD
+*   📊 **Mercado da Aposta:** (ex: Resultado Final, Total de Gols Mais/Menos 2.5, Jogador X Marca)
+*   ✅ **Sua Seleção:** (ex: Time A Vence, Mais de 2.5, Sim)
+*   *(Opcional: Você pode informar se a aposta foi BACK (A Favor) ou LAY (Contra) e qual foi o resultado original (Won/Lost))*
+
+---
+
+Com base nos dados oficiais disponíveis, posso verificar **mais de 60 tipos diferentes de resultados**, incluindo:
+
+🎯 **Resultados da Partida:** Placar Final, Resultado (1X2), Dupla Chance, Placar ao Intervalo (HT), Resultado Correto, Intervalo/Final do Jogo (HT/FT), Equipe Sem Sofrer Gols (Clean Sheet), Margem de Vitória, incluindo regras como "2 UP" (Dois Gols de Vantagem) e mais.
+
+⚽ **Gols:** Total de Gols (Mais/Menos), Ambas as Equipes Marcam (BTTS), Gols por Equipe, Gols por Tempo (HT/FT), Primeira/Última Equipe a Marcar, Total Exato de Gols.
+
+🥅 **Eventos de Jogador:** Marcador de Gol (Qualquer Momento, 1º/Último, 2+ Gols - *inferimos chute a gol se houver gol*), Jogador Recebe Cartão (Amarelo/Vermelho).
+
+🟨🟥 **Cartões:** Total de Cartões (Amarelo/Vermelho/Pontos), Equipe com Mais Cartões, Cartão Vermelho na Partida, Cartões por Tempo (HT/FT - *dependendo da fonte*).
+
+📊 **Estatísticas da Equipe:** Escanteios (Total, Por Equipe, Por Tempo), Chutes Totais, Chutes no Alvo, Posse de Bola, Faltas Cometidas, Desarmes, Impedimentos e diversas outras estatísticas agregadas por time.
+
+⏱️ **Regras Especiais:** Podemos analisar regras como "Substituição Segura" (para mercados de jogador qualificados e quando a API fornce os dados completos).
+
+---
+
+🔍 **Importante:**
+*   A verificação de resultados que exigem **estatísticas individuais muito granulares por jogador** (como número exato de **chutes no alvo** de um jogador específicos, **faltas cometidas/sofridas** por jogadores individuais ou **desarmes individuais**) pode ser limitada, pois esses detalhes por jogador nem sempre estão disponíveis nas fontes oficiais das apis. Nesses casos, faremos o possível para inferir o resultado com base nos dados existentes ou informaremos claramente a limitação.
+
+*   **Nunca forneça dados confidenciais** como **ID's únicos e/ou nomes de usuários**!
+
+Aguardo seus dados para iniciar a verificação! 😊`;
+    } else {
+      return `Hello! 👋 I'm the Official Sports Results Assistant.
+
+To verify your disputed bet, please provide the following details:
+
+*   ⚽ **Match:** Team A vs Team B
+*   📅 **Date:** YYYY-MM-DD format
+*   📊 **Bet Market:** (e.g., Match Result, Total Goals Over/Under 2.5, Player X Scores)
+*   ✅ **Your Selection:** (e.g., Team A Wins, Over 2.5, Yes)
+*   *(Optional: You can inform if the bet was BACK (For) or LAY (Against) and what was the original result (Won/Lost))*
+
+---
+
+Based on official data available, I can verify **over 60 different types of results**, including:
+
+🎯 **Match Results:** Final Score, Result (1X2), Double Chance, Half Time Score (HT), Correct Score, Half Time/Full Time (HT/FT), Clean Sheet, Winning Margin, including rules like "2 UP" (Two Goals Advantage) and more.
+
+⚽ **Goals:** Total Goals (Over/Under), Both Teams to Score (BTTS), Goals per Team, Goals per Half (HT/FT), First/Last Team to Score, Exact Total Goals.
+
+🥅 **Player Events:** Goal Scorer (Anytime, 1st/Last, 2+ Goals - *we infer shot on goal if there's a goal*), Player Receives Card (Yellow/Red).
+
+🟨🟥 **Cards:** Total Cards (Yellow/Red/Points), Team with Most Cards, Red Card in Match, Cards per Half (HT/FT - *depending on source*).
+
+📊 **Team Statistics:** Corners (Total, Per Team, Per Half), Total Shots, Shots on Target, Possession, Fouls Committed, Tackles, Offsides and various other aggregated team statistics.
+
+⏱️ **Special Rules:** We can analyze rules like "Safe Substitution" (for qualified player markets and when the API provides complete data).
+
+---
+
+🔍 **Important:**
+*   Verification of results that require **very granular individual player statistics** (like exact number of **shots on target** by specific players, **fouls committed/suffered** by individual players or **individual tackles**) may be limited, as these player details are not always available in official API sources. In these cases, we'll do our best to infer the result based on existing data or clearly inform about the limitation.
+
+*   **Never provide confidential data** like **unique IDs and/or usernames**!
+
+Waiting for your data to start verification! 😊`;
+    }
+  }, []);
   
   // Fetch chat history from Supabase
   const fetchChatHistory = useCallback(async () => {
@@ -168,6 +254,18 @@ const AssistantChat = () => {
     }
   }, [selectedHistoryIds, user, fetchChatHistory, toast]);
   
+  // Handle language change
+  const handleLanguageChange = useCallback((language: Language) => {
+    setSelectedLanguage(language);
+    // Reset messages with new language
+    if (currentAssistant) {
+      setMessages([{
+        sender: 'assistant',
+        text: getInitialMessage(language)
+      }]);
+    }
+  }, [currentAssistant, getInitialMessage]);
+  
   useEffect(() => {
     if (assistantType) {
       const displayInfo = assistantDisplayInfo[assistantType] || { name: assistantType, icon: '🤖' };
@@ -178,47 +276,14 @@ const AssistantChat = () => {
       });
       setMessages([{
         sender: 'assistant',
-        text: `Olá! 👋 Sou o Assistente de Resultados Esportivos Oficiais.
-
-Para verificar sua aposta contestada, por favor, forneça os seguintes detalhes:
-
-*   ⚽ **Jogo:** Time A vs Time B
-*   📅 **Data:** Formato YYYY-MM-DD
-*   📊 **Mercado da Aposta:** (ex: Resultado Final, Total de Gols Mais/Menos 2.5, Jogador X Marca)
-*   ✅ **Sua Seleção:** (ex: Time A Vence, Mais de 2.5, Sim)
-*   *(Opcional: Você pode informar se a aposta foi BACK (A Favor) ou LAY (Contra) e qual foi o resultado original (Won/Lost))*
-
----
-
-Com base nos dados oficiais disponíveis, posso verificar **mais de 60 tipos diferentes de resultados**, incluindo:
-
-🎯 **Resultados da Partida:** Placar Final, Resultado (1X2), Dupla Chance, Placar ao Intervalo (HT), Resultado Correto, Intervalo/Final do Jogo (HT/FT), Equipe Sem Sofrer Gols (Clean Sheet), Margem de Vitória, incluindo regras como "2 UP" (Dois Gols de Vantagem) e mais.
-
-⚽ **Gols:** Total de Gols (Mais/Menos), Ambas as Equipes Marcam (BTTS), Gols por Equipe, Gols por Tempo (HT/FT), Primeira/Última Equipe a Marcar, Total Exato de Gols.
-
-🥅 **Eventos de Jogador:** Marcador de Gol (Qualquer Momento, 1º/Último, 2+ Gols - *inferimos chute a gol se houver gol*), Jogador Recebe Cartão (Amarelo/Vermelho).
-
-🟨🟥 **Cartões:** Total de Cartões (Amarelo/Vermelho/Pontos), Equipe com Mais Cartões, Cartão Vermelho na Partida, Cartões por Tempo (HT/FT - *dependendo da fonte*).
-
-📊 **Estatísticas da Equipe:** Escanteios (Total, Por Equipe, Por Tempo), Chutes Totais, Chutes no Alvo, Posse de Bola, Faltas Cometidas, Desarmes, Impedimentos e diversas outras estatísticas agregadas por time.
-
-⏱️ **Regras Especiais:** Podemos analisar regras como "Substituição Segura" (para mercados de jogador qualificados e quando a API fornce os dados completos).
-
----
-
-🔍 **Importante:**
-*   A verificação de resultados que exigem **estatísticas individuais muito granulares por jogador** (como número exato de **chutes no alvo** de um jogador específicos, **faltas cometidas/sofridas** por jogadores individuais ou **desarmes individuais**) pode ser limitada, pois esses detalhes por jogador nem sempre estão disponíveis nas fontes oficiais das apis. Nesses casos, faremos o possível para inferir o resultado com base nos dados existentes ou informaremos claramente a limitação.
-
-*   **Nunca forneça dados confidenciais** como **ID's únicos e/ou nomes de usuários**!
-
-Aguardo seus dados para iniciar a verificação! 😊`
+        text: getInitialMessage(selectedLanguage)
       }]);
       setError(null);
       setIsLoading(false);
     } else {
       navigate('/dashboard');
     }
-  }, [assistantType, navigate]);
+  }, [assistantType, navigate, getInitialMessage, selectedLanguage]);
   
   // Função para verificar se a resposta contém dados estruturados (JSON)
   const isStructuredResponse = (text: string): boolean => {
@@ -273,13 +338,16 @@ Aguardo seus dados para iniciar a verificação! 😊`
         status: 'sent',
       });
       
-      const response = await fetch(`${import.meta.env.VITE_N8N_WEBHOOK_URL}/webhook/5c024eb2-5ab2-4be3-92f9-26250da4c65d`, {
+      // Use the language-specific webhook
+      const webhookUrl = getWebhookUrl(selectedLanguage);
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageToSend,
           userId: user.id,
-          sessionId: user.id
+          sessionId: user.id,
+          language: selectedLanguage
         }),
       });
       
@@ -344,7 +412,7 @@ Aguardo seus dados para iniciar a verificação! 😊`
     if (currentAssistant) {
       setMessages([{
         sender: 'assistant',
-        text: `Olá! 👋 Sou o Agente de Resultados Esportivos Oficiais. Para verificar sua aposta, por favor, informe: ⚽ Jogo (Time A vs Time B), 📅 Data (YYYY-MM-DD), 📊 Mercado (ex: Placar Final) e ✅ Seleção (ex: Time A vence).`
+        text: getInitialMessage(selectedLanguage)
       }]);
     }
     setInputValue("");
@@ -392,6 +460,15 @@ Aguardo seus dados para iniciar a verificação! 😊`
         name={currentAssistant?.name}
         gifUrl="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExODIxcDQ4azljM2lxMHlmdGQ5NHR0bWhrNXlycWwzcDF0MThudWRoNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/elatsjsGzdLtNov4Ky/giphy.gif"
       />
+      
+      {/* Language Selector */}
+      <div className="px-4 py-2 border-b bg-background">
+        <LanguageSelector 
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={handleLanguageChange}
+        />
+      </div>
+      
       <div className="flex flex-1 overflow-hidden">
         <ChatSidebar
           inputValue={inputValue}
