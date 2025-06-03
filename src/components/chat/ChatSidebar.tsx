@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { History, Send, Trash2, ArchiveX, ChevronDown, ChevronUp, Search, Calendar, Filter, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import ReactMarkdown from "react-markdown";
+import { cn } from "@/lib/utils";
 import {
   Accordion,
   AccordionContent,
@@ -53,6 +54,19 @@ interface ChatSidebarProps {
   onToggleHistorySelection: (id: string, isChecked: boolean) => void;
   onDeleteSelectedHistory: () => void;
 }
+
+// Componente para renderizar código no markdown do histórico
+const HistoryCodeBlock = ({ className, children }: { className?: string, children: React.ReactNode }) => {
+  return (
+    <div className="my-1 w-full overflow-x-auto">
+      <pre className="p-1.5 bg-gray-800 rounded text-white overflow-x-auto whitespace-pre-wrap break-words text-xs">
+        <code className={cn("break-words whitespace-pre-wrap", className)}>
+          {children}
+        </code>
+      </pre>
+    </div>
+  );
+};
 
 export const ChatSidebar = ({
   inputValue,
@@ -275,8 +289,56 @@ export const ChatSidebar = ({
                         
                         {isExpanded && (
                           <div className="pl-7 pr-2 mt-1 border-l-2 border-muted-foreground/20">
-                            <div className="text-sm whitespace-pre-wrap break-words bg-background p-2 rounded-md">
-                              {msg.text}
+                            <div className={cn(
+                              "text-xs prose prose-sm max-w-none break-words bg-background p-2 rounded-md",
+                              "overflow-hidden leading-tight", 
+                              "[&_ul]:space-y-0 [&_ul]:pl-3 [&_ul]:my-1", 
+                              "[&_ol]:space-y-0 [&_ol]:pl-3 [&_ol]:my-1", 
+                              "[&_li]:my-0 [&_li]:py-0", 
+                              "[&_li>p]:m-0 [&_li>p]:inline", 
+                              "[&_h1]:mt-2 [&_h1]:mb-1 [&_h1]:text-sm [&_h1]:font-semibold", 
+                              "[&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-xs [&_h2]:font-semibold", 
+                              "[&_h3]:mt-1 [&_h3]:mb-0.5 [&_h3]:text-xs [&_h3]:font-semibold", 
+                              "[&_hr]:my-2 [&_hr]:border-gray-200", 
+                              "[&_p]:break-words [&_p]:mb-1", 
+                              "[&_p]:leading-snug", 
+                              "[&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:my-1",
+                              "[&_strong]:font-semibold"
+                            )}>
+                              <ReactMarkdown
+                                components={{
+                                  code: ({ node, className, children, ...props }) => {
+                                    const match = /language-(\w+)/.exec(className || '');
+                                    const isInline = (props as { inline?: boolean }).inline;
+                                    return !isInline ? (
+                                      <HistoryCodeBlock className={match ? match[1] : ''}>
+                                        {String(children).replace(/\n$/, '')}
+                                      </HistoryCodeBlock>
+                                    ) : (
+                                      <code className={cn("bg-gray-100 px-1 py-0.5 rounded text-xs", className)} {...props}>
+                                        {children}
+                                      </code>
+                                    );
+                                  },
+                                  pre: ({ children }) => <div className="not-prose">{children}</div>,
+                                  ul: ({ children }) => <ul className="list-disc pl-4">{children}</ul>,
+                                  ol: ({ children }) => <ol className="list-decimal pl-4">{children}</ol>,
+                                  li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                                  table: ({ children }) => (
+                                    <div className="overflow-x-auto my-1">
+                                      <table className="min-w-full divide-y divide-gray-200 border border-gray-200 text-xs">
+                                        {children}
+                                      </table>
+                                    </div>
+                                  ),
+                                  thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>,
+                                  tbody: ({ children }) => <tbody className="divide-y divide-gray-200">{children}</tbody>,
+                                  th: ({ children }) => <th className="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{children}</th>,
+                                  td: ({ children }) => <td className="px-1 py-1 text-xs break-words">{children}</td>
+                                }}
+                              >
+                                {msg.text}
+                              </ReactMarkdown>
                             </div>
                           </div>
                         )}
