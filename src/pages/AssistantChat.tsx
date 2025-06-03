@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,78 +62,169 @@ const AssistantChat = () => {
       : `${baseUrl}/webhook/English`;
   }, []);
 
-  // Get initial message based on language
+  // Get full initial message for page load
   const getInitialMessage = useCallback((language: Language) => {
     if (language === 'portuguese') {
-      return `Olá! 👋 Sou o Assistente de Resultados Esportivos Oficiais.
+      return `Olá! 👋 Sou o Agente de Resultados Esportivos Oficiais. Minha missão é fornecer verificações precisas e relatórios eficientes para suas apostas esportivas contestadas.
 
-Para verificar sua aposta contestada, por favor, forneça os seguintes detalhes:
+Para que eu possa te ajudar, por favor, forneça os seguintes detalhes da aposta:
 
 *   ⚽ **Jogo:** Time A vs Time B
-*   📅 **Data:** Formato YYYY-MM-DD
-*   📊 **Mercado da Aposta:** (ex: Resultado Final, Total de Gols Mais/Menos 2.5, Jogador X Marca)
-*   ✅ **Sua Seleção:** (ex: Time A Vence, Mais de 2.5, Sim)
-*   *(Opcional: Você pode informar se a aposta foi BACK (A Favor) ou LAY (Contra) e qual foi o resultado original (Won/Lost))*
+*   📅 **Data da Partida:** Formato YYYY-MM-DD
+*   📊 **Mercado da Aposta:** (ex: Resultado Final, Jogador X Cometer 2+ Faltas, Time A Mais Escanteios HT & FT)
+*   ✅ **Sua Seleção:** (ex: Time A Vence, Sim, Jogador Y)
+*   *(Opcional, mas útil:)*
+    *   *Tipo da Aposta:* **BACK** (a favor) ou **LAY** (contra)?
+    *   *Resultado Original da Liquidação:* Ganha (W) ou Perdida (L)?
 
 ---
 
-Com base nos dados oficiais disponíveis, posso verificar **mais de 60 tipos diferentes de resultados**, incluindo:
+Com essas informações, consultarei nossas fontes de dados oficiais (API's). Para apostas complexas que envolvam um segundo jogador ou a aplicação da regra de "Substituição Segura", posso realizar buscas adicionais para obter as estatísticas específicas desses jogadores.
 
-🎯 **Resultados da Partida:** Placar Final, Resultado (1X2), Dupla Chance, Placar ao Intervalo (HT), Resultado Correto, Intervalo/Final do Jogo (HT/FT), Equipe Sem Sofrer Gols (Clean Sheet), Margem de Vitória, incluindo regras como "2 UP" (Dois Gols de Vantagem) e mais.
+**Posso verificar uma ampla gama de resultados, incluindo:**
 
-⚽ **Gols:** Total de Gols (Mais/Menos), Ambas as Equipes Marcam (BTTS), Gols por Equipe, Gols por Tempo (HT/FT), Primeira/Última Equipe a Marcar, Total Exato de Gols.
+🎯 **Resultados da Partida e de Tempos:**
+    *   Placar Final, Placar ao Intervalo (HT), Placar do Segundo Tempo (ST)
+    *   Resultado Final (1X2), Dupla Chance, Empate Anula Aposta
+    *   Resultado Correto (Final e HT)
+    *   Intervalo / Final do Jogo (HT/FT)
+    *   Equipe Sem Sofrer Gols (Clean Sheet)
+    *   Margem de Vitória
+    *   Time para Marcar em Ambos os Tempos
+    *   Intervalo com Mais Gols
 
-🥅 **Eventos de Jogador:** Marcador de Gol (Qualquer Momento, 1º/Último, 2+ Gols - *inferimos chute a gol se houver gol*), Jogador Recebe Cartão (Amarelo/Vermelho).
+⚽ **Gols:**
+    *   Total de Gols (Mais/Menos - partida completa, HT, ST)
+    *   Ambas as Equipes Marcam (BTTS - partida completa, HT, ST)
+    *   Gols por Equipe (Mais/Menos - partida completa, HT, ST)
+    *   Primeira/Última Equipe a Marcar
+    *   Total Exato de Gols na Partida
 
-🟨🟥 **Cartões:** Total de Cartões (Amarelo/Vermelho/Pontos), Equipe com Mais Cartões, Cartão Vermelho na Partida, Cartões por Tempo (HT/FT - *dependendo da fonte*).
+🥅 **Estatísticas e Eventos de Jogador (quando os dados estiverem disponíveis na fonte oficial):**
+    *   **Marcador de Gol:** Qualquer Momento, Primeiro Marcador, Último Marcador, Jogador Marca 2+ Gols (Doblete), Jogador Marca 3+ Gols (Hat-trick).
+    *   **Cartões para Jogador:** Jogador Recebe Cartão Amarelo, Jogador Recebe Cartão Vermelho.
+    *   **Chutes do Jogador:** Chutes no Alvo (SOT), Total de Chutes.
+    *   **Faltas do Jogador:** Faltas Cometidas, Faltas Sofridas.
+    *   **Desarmes do Jogador:** Total de Desarmes.
+    *   Outras estatísticas individuais como Passes, Passes Chave, Duelos Ganhos, etc.
 
-📊 **Estatísticas da Equipe:** Escanteios (Total, Por Equipe, Por Tempo), Chutes Totais, Chutes no Alvo, Posse de Bola, Faltas Cometidas, Desarmes, Impedimentos e diversas outras estatísticas agregadas por time.
+🟨🟥 **Cartões (Geral da Partida):**
+    *   Total de Cartões (Amarelos, Vermelhos, por Pontos - Y=10, R=25, Máx. 35/jogador)
+    *   Equipe com Mais Cartões
+    *   Cartão Vermelho na Partida (Sim/Não)
+    *   Cartões por Tempo (HT/ST - *dependendo da fonte*)
 
-⏱️ **Regras Especiais:** Podemos analisar regras como "Substituição Segura" (para mercados de jogador qualificados e quando a API fornce os dados completos).
+📊 **Estatísticas da Equipe:**
+    *   Escanteios (Total, Por Equipe, Por Tempo, Handicap, Mais/Menos)
+    *   Chutes (Total, No Alvo - Por Equipe, Por Tempo)
+    *   Posse de Bola
+    *   Faltas Cometidas pela Equipe
+    *   Desarmes da Equipe
+    *   Impedimentos
+    *   Mercados de "Time com Mais [Estatística X] em Cada Tempo".
+
+⏱️ **Regras Especiais de Apostas:**
+    *   **"2 UP" (Dois Gols de Vantagem):** Verificamos se o time selecionado abriu 2 gols de vantagem em mercados aplicáveis.
+    *   **"Substituição Segura":** Para mercados de jogador qualificados (Marcador, Assistência, Cartão, Chutes, Faltas) nas seguintes competições: **Brasileirão Série A, Brasileirão Betano, Copa do Mundo de Clubes FIFA, Champions League, Europa League, Premier League, Copa da Inglaterra.**
+        *   *Importante:* Esta regra **não se aplica** se o mercado for do tipo "Boost" (OddsBoost, Super Boost, etc.).
 
 ---
 
-🔍 **Importante:**
-*   A verificação de resultados que exigem **estatísticas individuais muito granulares por jogador** (como número exato de **chutes no alvo** de um jogador específicos, **faltas cometidas/sofridas** por jogadores individuais ou **desarmes individuais**) pode ser limitada, pois esses detalhes por jogador nem sempre estão disponíveis nas fontes oficiais das apis. Nesses casos, faremos o possível para inferir o resultado com base nos dados existentes ou informaremos claramente a limitação.
+🔍 **Observações Importantes:**
 
-*   **Nunca forneça dados confidenciais** como **ID's únicos e/ou nomes de usuários**!
+*   A disponibilidade e granularidade das **estatísticas individuais de jogador** (chutes, faltas, desarmes, etc.) dependem inteiramente da cobertura da fonte oficial para cada partida e liga específica. Se um dado não estiver explicitamente disponível, farei o possível para **inferir logicamente** quando aplicável (ex: um gol marcado por um jogador confirma que ele teve "1+ Chute no Alvo"). Caso contrário, informarei claramente a limitação na verificação.
+*   Para **apostas combinadas** envolvendo múltiplos jogadores ou múltiplas estatísticas, todas as partes da aposta precisam ser confirmáveis para que a aposta seja considerada "Ganha".
 
-Aguardo seus dados para iniciar a verificação! 😊`;
+⚠️ **Atenção:**
+
+*   **Por favor, **Nunca forneça dados confidenciais** como IDs únicos de apostas, senhas e informações pessoais!
+
+Aguardo os detalhes da sua aposta para iniciar a verificação! 😊`;
     } else {
-      return `Hello! 👋 I'm the Official Sports Results Assistant.
+      return `Hello! 👋 I'm the Official Sports Results Agent. My mission is to provide accurate verifications and efficient reports for your disputed sports bets.
 
-To verify your disputed bet, please provide the following details:
+To help you, please provide the following bet details:
 
 *   ⚽ **Match:** Team A vs Team B
-*   📅 **Date:** YYYY-MM-DD format
-*   📊 **Bet Market:** (e.g., Match Result, Total Goals Over/Under 2.5, Player X Scores)
-*   ✅ **Your Selection:** (e.g., Team A Wins, Over 2.5, Yes)
-*   *(Optional: You can inform if the bet was BACK (For) or LAY (Against) and what was the original result (Won/Lost))*
+*   📅 **Match Date:** YYYY-MM-DD format
+*   📊 **Bet Market:** (e.g., Match Result, Player X Commits 2+ Fouls, Team A Most Corners HT & FT)
+*   ✅ **Your Selection:** (e.g., Team A Wins, Yes, Player Y)
+*   *(Optional, but helpful:)*
+    *   *Bet Type:* **BACK** (for) or **LAY** (against)?
+    *   *Original Settlement Result:* Won (W) or Lost (L)?
 
 ---
 
-Based on official data available, I can verify **over 60 different types of results**, including:
+With this information, I'll consult our official data sources (APIs). For complex bets involving a second player or application of the "Safe Substitution" rule, I can perform additional searches to obtain specific statistics for these players.
 
-🎯 **Match Results:** Final Score, Result (1X2), Double Chance, Half Time Score (HT), Correct Score, Half Time/Full Time (HT/FT), Clean Sheet, Winning Margin, including rules like "2 UP" (Two Goals Advantage) and more.
+**I can verify a wide range of results, including:**
 
-⚽ **Goals:** Total Goals (Over/Under), Both Teams to Score (BTTS), Goals per Team, Goals per Half (HT/FT), First/Last Team to Score, Exact Total Goals.
+🎯 **Match and Half Results:**
+    *   Final Score, Half Time Score (HT), Second Half Score (ST)
+    *   Final Result (1X2), Double Chance, Draw No Bet
+    *   Correct Score (Final and HT)
+    *   Half Time / Full Time (HT/FT)
+    *   Clean Sheet
+    *   Winning Margin
+    *   Team to Score in Both Halves
+    *   Half with Most Goals
 
-🥅 **Player Events:** Goal Scorer (Anytime, 1st/Last, 2+ Goals - *we infer shot on goal if there's a goal*), Player Receives Card (Yellow/Red).
+⚽ **Goals:**
+    *   Total Goals (Over/Under - full match, HT, ST)
+    *   Both Teams to Score (BTTS - full match, HT, ST)
+    *   Goals per Team (Over/Under - full match, HT, ST)
+    *   First/Last Team to Score
+    *   Exact Total Goals in Match
 
-🟨🟥 **Cards:** Total Cards (Yellow/Red/Points), Team with Most Cards, Red Card in Match, Cards per Half (HT/FT - *depending on source*).
+🥅 **Player Statistics and Events (when data is available from official sources):**
+    *   **Goal Scorer:** Anytime, First Scorer, Last Scorer, Player Scores 2+ Goals (Brace), Player Scores 3+ Goals (Hat-trick).
+    *   **Player Cards:** Player Receives Yellow Card, Player Receives Red Card.
+    *   **Player Shots:** Shots on Target (SOT), Total Shots.
+    *   **Player Fouls:** Fouls Committed, Fouls Suffered.
+    *   **Player Tackles:** Total Tackles.
+    *   Other individual statistics like Passes, Key Passes, Duels Won, etc.
 
-📊 **Team Statistics:** Corners (Total, Per Team, Per Half), Total Shots, Shots on Target, Possession, Fouls Committed, Tackles, Offsides and various other aggregated team statistics.
+🟨🟥 **Cards (General Match):**
+    *   Total Cards (Yellow, Red, by Points - Y=10, R=25, Max. 35/player)
+    *   Team with Most Cards
+    *   Red Card in Match (Yes/No)
+    *   Cards per Half (HT/ST - *depending on source*)
 
-⏱️ **Special Rules:** We can analyze rules like "Safe Substitution" (for qualified player markets and when the API provides complete data).
+📊 **Team Statistics:**
+    *   Corners (Total, Per Team, Per Half, Handicap, Over/Under)
+    *   Shots (Total, On Target - Per Team, Per Half)
+    *   Ball Possession
+    *   Fouls Committed by Team
+    *   Team Tackles
+    *   Offsides
+    *   "Team with Most [Statistic X] in Each Half" markets.
+
+⏱️ **Special Betting Rules:**
+    *   **"2 UP" (Two Goals Advantage):** We verify if the selected team opened a 2-goal advantage in applicable markets.
+    *   **"Safe Substitution":** For qualified player markets (Scorer, Assist, Card, Shots, Fouls) in the following competitions: **Brazilian Serie A, Brasileirao Betano, FIFA Club World Cup, Champions League, Europa League, Premier League, FA Cup.**
+        *   *Important:* This rule **does not apply** if the market is "Boost" type (OddsBoost, Super Boost, etc.).
 
 ---
 
-🔍 **Important:**
-*   Verification of results that require **very granular individual player statistics** (like exact number of **shots on target** by specific players, **fouls committed/suffered** by individual players or **individual tackles**) may be limited, as these player details are not always available in official API sources. In these cases, we'll do our best to infer the result based on existing data or clearly inform about the limitation.
+🔍 **Important Notes:**
 
-*   **Never provide confidential data** like **unique IDs and/or usernames**!
+*   The availability and granularity of **individual player statistics** (shots, fouls, tackles, etc.) depend entirely on the official source coverage for each specific match and league. If data is not explicitly available, I'll do my best to **logically infer** when applicable (e.g., a goal scored by a player confirms they had "1+ Shot on Target"). Otherwise, I'll clearly inform about the verification limitation.
+*   For **combination bets** involving multiple players or multiple statistics, all parts of the bet need to be confirmable for the bet to be considered "Won".
 
-Waiting for your data to start verification! 😊`;
+⚠️ **Warning:**
+
+*   **Please, Never provide confidential data** such as unique bet IDs, passwords, and personal information!
+
+I'm waiting for your bet details to start verification! 😊`;
+    }
+  }, []);
+  
+  // Get short message for chat clearing
+  const getShortMessage = useCallback((language: Language) => {
+    if (language === 'portuguese') {
+      return `Olá! 👋 Sou o Agente de Resultados Esportivos Oficiais. Para verificar sua aposta, por favor, informe: ⚽ Jogo (Time A vs Time B), 📅 Data (YYYY-MM-DD), 📊 Mercado (ex: Placar Final) e ✅ Seleção (ex: Time A vence).`;
+    } else {
+      return `Hello! 👋 I'm the Official Sports Results Agent. To verify your bet, please provide: ⚽ Match (Team A vs Team B), 📅 Date (YYYY-MM-DD), 📊 Market (e.g., Final Score) and ✅ Selection (e.g., Team A wins).`;
     }
   }, []);
   
@@ -412,7 +504,7 @@ Waiting for your data to start verification! 😊`;
     if (currentAssistant) {
       setMessages([{
         sender: 'assistant',
-        text: getInitialMessage(selectedLanguage)
+        text: getShortMessage(selectedLanguage)
       }]);
     }
     setInputValue("");
