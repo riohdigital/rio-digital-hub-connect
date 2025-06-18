@@ -17,7 +17,7 @@ export default function Login() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Se o usuário já estiver logado, redireciona para o dashboard
+  // If user is already logged in, redirect to dashboard
   useEffect(() => {
     if (user) {
       navigate('/dashboard');
@@ -29,41 +29,37 @@ export default function Login() {
     
     try {
       await signIn(email, password);
+      // No need for manual navigation, the AuthContext will handle this
     } catch (error: any) {
       console.error("Erro durante o login:", error);
+      toast({
+        title: "Erro no login",
+        description: error.message || "Não foi possível fazer login",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      await signInWithGoogle();
-    } catch (error: any) {
-      console.error("Erro no login com Google:", error);
-    }
-  };
-
-  // Se ainda estiver verificando o estado de autenticação, mostra loading
+  // If still checking auth state, show loading
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
       </div>
     );
   }
 
-  // Se o usuário já estiver logado, não renderiza o formulário
+  // If user is already logged in, don't render the login form
   if (user) {
     return null;
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-primary/5 to-background">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 bg-gradient-to-br from-primary/5 to-background">
       <Card className="mx-auto max-w-sm w-full shadow-lg border-primary/20">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary">L</span>
-            </div>
+            <img src="/logo.png" alt="RIOH DIGITAL AI" className="h-16" />
           </div>
           <CardTitle className="text-2xl font-bold text-primary">Login</CardTitle>
           <CardDescription>
@@ -139,7 +135,7 @@ export default function Login() {
             variant="outline"
             className="w-full border-primary/20 hover:bg-primary/5"
             type="button"
-            onClick={handleGoogleSignIn}
+            onClick={() => signInWithGoogle()}
             disabled={loading}
           >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

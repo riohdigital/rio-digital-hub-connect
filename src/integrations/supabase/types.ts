@@ -351,19 +351,16 @@ export type Database = {
         Row: {
           id: number
           message: Json
-          message_timestamp: string | null
           session_id: string
         }
         Insert: {
           id?: number
           message: Json
-          message_timestamp?: string | null
           session_id: string
         }
         Update: {
           id?: number
           message?: Json
-          message_timestamp?: string | null
           session_id?: string
         }
         Relationships: []
@@ -398,51 +395,6 @@ export type Database = {
           received_at?: string
           status?: string
           whatsapp_jid?: string
-        }
-        Relationships: []
-      }
-      digirioh_knowledge_base: {
-        Row: {
-          content: string
-          created_at: string
-          created_by: string | null
-          embedding: string | null
-          id: number
-          keywords: string[] | null
-          knowledge_type: string
-          last_accessed_at: string | null
-          metadata: Json | null
-          relevance_score: number | null
-          tsv: unknown | null
-          updated_at: string | null
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          created_by?: string | null
-          embedding?: string | null
-          id?: number
-          keywords?: string[] | null
-          knowledge_type: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          relevance_score?: number | null
-          tsv?: unknown | null
-          updated_at?: string | null
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          created_by?: string | null
-          embedding?: string | null
-          id?: number
-          keywords?: string[] | null
-          knowledge_type?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          relevance_score?: number | null
-          tsv?: unknown | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -495,45 +447,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      market_list_items: {
-        Row: {
-          created_at: string
-          deadline: string | null
-          id: number
-          is_purchased: boolean
-          item_name: string
-          market_name: string | null
-          price_approx: number | null
-          quantity: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          deadline?: string | null
-          id?: number
-          is_purchased?: boolean
-          item_name: string
-          market_name?: string | null
-          price_approx?: number | null
-          quantity?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          deadline?: string | null
-          id?: number
-          is_purchased?: boolean
-          item_name?: string
-          market_name?: string | null
-          price_approx?: number | null
-          quantity?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       pending_reminders: {
         Row: {
@@ -592,7 +505,6 @@ export type Database = {
         Row: {
           allowed_assistants: string[] | null
           avatar_url: string | null
-          evolution_instance_key: string | null
           full_name: string | null
           google_access_token: string | null
           google_email: string | null
@@ -601,8 +513,6 @@ export type Database = {
           google_token_expires_at: string | null
           id: string
           plan: string
-          preferred_name: string | null
-          push_name_whatsapp: string | null
           role: string
           updated_at: string | null
           whatsapp_jid: string | null
@@ -610,7 +520,6 @@ export type Database = {
         Insert: {
           allowed_assistants?: string[] | null
           avatar_url?: string | null
-          evolution_instance_key?: string | null
           full_name?: string | null
           google_access_token?: string | null
           google_email?: string | null
@@ -619,8 +528,6 @@ export type Database = {
           google_token_expires_at?: string | null
           id: string
           plan?: string
-          preferred_name?: string | null
-          push_name_whatsapp?: string | null
           role?: string
           updated_at?: string | null
           whatsapp_jid?: string | null
@@ -628,7 +535,6 @@ export type Database = {
         Update: {
           allowed_assistants?: string[] | null
           avatar_url?: string | null
-          evolution_instance_key?: string | null
           full_name?: string | null
           google_access_token?: string | null
           google_email?: string | null
@@ -637,8 +543,6 @@ export type Database = {
           google_token_expires_at?: string | null
           id?: string
           plan?: string
-          preferred_name?: string | null
-          push_name_whatsapp?: string | null
           role?: string
           updated_at?: string | null
           whatsapp_jid?: string | null
@@ -666,7 +570,6 @@ export type Database = {
           synced_at: string
           updated_google: string | null
           user_id: string
-          user_jid: string | null
         }
         Insert: {
           attendees?: Json | null
@@ -688,7 +591,6 @@ export type Database = {
           synced_at?: string
           updated_google?: string | null
           user_id: string
-          user_jid?: string | null
         }
         Update: {
           attendees?: Json | null
@@ -710,7 +612,6 @@ export type Database = {
           synced_at?: string
           updated_google?: string | null
           user_id?: string
-          user_jid?: string | null
         }
         Relationships: [
           {
@@ -824,53 +725,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_profile_notes: {
-        Row: {
-          created_at: string
-          id: number
-          is_active: boolean | null
-          metadata: Json | null
-          note_content: string
-          note_key: string | null
-          note_type: string
-          tsv: unknown | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          is_active?: boolean | null
-          metadata?: Json | null
-          note_content: string
-          note_key?: string | null
-          note_type: string
-          tsv?: unknown | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          is_active?: boolean | null
-          metadata?: Json | null
-          note_content?: string
-          note_key?: string | null
-          note_type?: string
-          tsv?: unknown | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_profile_notes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -921,10 +775,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      binary_quantize: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
-      }
       get_latest_chat_history_entry: {
         Args: { p_user_id: string }
         Returns: {
@@ -945,81 +795,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      halfvec_avg: {
-        Args: { "": number[] }
-        Returns: unknown
-      }
-      halfvec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      halfvec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      halfvec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
       has_role: {
         Args: { user_id: string; role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
-      }
-      hnsw_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_sparsevec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnswhandler: {
-        Args: { "": unknown }
-        Returns: unknown
       }
       insert_user_to_profiles: {
         Args: { user_id: string }
         Returns: undefined
       }
-      ivfflat_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflat_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflathandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      l2_norm: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: number
-      }
-      l2_normalize: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: string
-      }
       manage_user_assistant_plans: {
         Args: { p_user_id: string; p_assistant_types: string[] }
         Returns: boolean
-      }
-      sparsevec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      sparsevec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      sparsevec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
       }
       user_owns_airbnb_property: {
         Args: { property_id: string }
@@ -1028,30 +814,6 @@ export type Database = {
       user_owns_concorrente_chave: {
         Args: { p_id_concorrente_airbnb_chave: string }
         Returns: boolean
-      }
-      vector_avg: {
-        Args: { "": number[] }
-        Returns: string
-      }
-      vector_dims: {
-        Args: { "": string } | { "": unknown }
-        Returns: number
-      }
-      vector_norm: {
-        Args: { "": string }
-        Returns: number
-      }
-      vector_out: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      vector_send: {
-        Args: { "": string }
-        Returns: string
-      }
-      vector_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
       }
     }
     Enums: {
