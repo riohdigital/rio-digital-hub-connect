@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Presentation: AI-Powered Bet Verification Project</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Global Styles & Page 1 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F0F3F4; /* Light Neutral Gray */
+            color: #2C3E50; /* Dark Main Text */
+        }
+        .sticky-nav a {
+            transition: all 0.3s ease;
+        }
+        .sticky-nav a.active {
+            color: #2ECC71; /* Growth Green */
+            transform: scale(1.1);
+            border-bottom-width: 2px;
+            border-color: #2ECC71;
+        }
+        .chart-container {
+            position: relative; width: 100%; max-width: 700px; margin-left: auto; margin-right: auto; height: 350px; max-height: 450px;
+        }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        .impact-card {
+            background-color: white; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); text-align: center;
+        }
+        .flow-step-global {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1.5rem; background-color: #0A2F51; color: white; border-radius: 0.5rem; flex: 1; min-height: 120px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2);
+        }
+        .flow-arrow-global {
+            display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #2ECC71; margin: 0 1rem; font-weight: bold;
+        }
+        .timeline-item {
+            position: relative; padding-left: 2.5rem; padding-bottom: 1.5rem; border-left: 3px solid #2ECC71;
+        }
+        .timeline-item::before {
+            content: ''; position: absolute; left: -0.7rem; top: 0; width: 1.25rem; height: 1.25rem; border-radius: 50%; background-color: #2ECC71; border: 3px solid #F0F3F4;
+        }
+        .highlight-number { font-size: 4rem; font-weight: 900; color: #F1C40F; }
+        @media (max-width: 767px) { .flow-arrow-global { transform: rotate(90deg); margin: 1rem 0; } }
+
+        /* Page 2 Styles */
+        .workflow-card {
+            background-color: white; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07); border-left-width: 5px;
+        }
+        .workflow-arrow { font-size: 2.5rem; color: #3498DB; margin: 1rem 0; text-align: center; }
+        .feature-card {
+            background-color: #3498DB; color: white; border-radius: 0.5rem; padding: 1.5rem; text-align: center; box-shadow: 0 4px 8px rgb(0 0 0 / 0.1);
+        }
+        .output-example-container img {
+            width: 100%; max-width: 700px; height: auto; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 0.75rem; margin-bottom: 0.75rem; display: block; margin-left: auto; margin-right: auto; border: 1px solid #BDC3C7;
+        }
+        .report-block-card {
+            background-color: #ffffff; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        
+        /* Pages 3 & 5 Styles (Technical) */
+        .tech-card {
+             background-color: #FFFFFF; border-radius: 0.75rem; padding: 2rem; box-shadow: 0 10px 20px -5px rgb(0 0 0 / 0.1), 0 4px 8px -4px rgb(0 0 0 / 0.1); border-left-width: 6px; border-color: #3498DB; margin-bottom: 2rem;
+        }
+        .sub-tech-card {
+             background-color: #f8f9fa; border-radius: 0.5rem; padding: 1.5rem; margin-top: 1.5rem; box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+        }
+        .prompt-highlight-card {
+             background-color: #2C3E50; color: #ECF0F1; border-radius: 0.75rem; padding: 2rem; box-shadow: 0 10px 20px -3px rgb(0 0 0 / 0.3), 0 4px 8px -4px rgb(0 0 0 / 0.3); border: 2px solid #2ECC71;
+        }
+        .flow-arrow-tech { font-size: 2.5rem; color: #3498DB; margin: 1.5rem 0; text-align: center; }
+        .image-container-tech img {
+            width: 100%; max-width: 800px; height: auto; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 0.75rem; margin-bottom: 0.75rem; display: block; margin-left: auto; margin-right: auto; border: 1px solid #BDC3C7;
+        }
+        .highlight-stat {
+            background-color: #2ECC71; color: #FFFFFF; padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: bold; display: inline-block;
+        }
+        .tech-card h2 { color: #2C3E50; }
+        .tech-card h3 { color: #3498DB; }
+        .prompt-highlight-card h2, .prompt-highlight-card h3, .prompt-highlight-card p { color: #ECF0F1; }
+        .prompt-highlight-card h2 { color: #2ECC71; }
+
+        /* Page 4 Styles */
+        .case-study-card {
+            background-color: white; border-radius: 0.75rem; padding: 2rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); margin-bottom: 2.5rem; border-top: 5px solid #0A2F51;
+        }
+        .case-study-card h3 { color: #0A2F51; }
+        .analysis-container img {
+            width: 100%; height: auto; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #BDC3C7;
+        }
+        .conclusion-box {
+            background-color: #0A2F51; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; margin-top: 1.5rem; border-left: 5px solid #F1C40F;
+        }
+        .cost-highlight {
+            font-size: 1.875rem; /* 3xl */
+            font-weight: 700; /* bold */
+            color: #2ECC71; /* Growth Green */
+            text-align: center;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- MAIN HEADER -->
+    <header class="bg-[#0A2F51] text-white text-center py-20 px-6">
+        <h1 class="text-4xl md:text-6xl font-black uppercase tracking-wider">Transforming Bet Verification on a Global Scale with AI</h1>
+        <p class="mt-6 text-lg md:text-xl font-light max-w-3xl mx-auto">
+            Precision, Efficiency, and Intelligence for the Future of Betting Operations.
+        </p>
+    </header>
+
+    <!-- UNIFIED AND REDUCED NAVIGATION -->
+    <nav class="sticky-nav sticky top-0 bg-white/90 backdrop-blur-md shadow-lg z-50 py-3">
+        <div class="container mx-auto px-6">
+            <ul class="flex flex-wrap justify-center items-center gap-x-4 gap-y-1 md:gap-x-8 text-sm font-semibold text-[#0A2F51]">
+                <li><a href="#desafio">The Challenge</a></li>
+                <li><a href="#impacto">Impact</a></li>
+                <li><a href="#ponto-de-partida">How It Works</a></li>
+                <li><a href="#arquitetura">Architecture</a></li>
+                <li><a href="#estudos-de-caso">Case Studies</a></li>
+                <li><a href="#tecnologia-e-custos">Technology & Costs</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTAINER FOR ALL CONTENT -->
+    <main class="container mx-auto p-6 md:p-10">
+
+        <!-- ===== START OF PAGE 1 CONTENT ===== -->
+        <section id="desafio" class="my-12 md:my-16 scroll-mt-24">
+            <h2 class="text-4xl font-bold text-[#0A2F51] text-center mb-4">The Global Challenge of Bet Verification</h2>
+            <p class="text-center text-lg text-slate-700 max-w-3xl mx-auto mb-10">
+                In a globalized and rapidly growing market, manual verification of sports bets presents significant complexities, resulting in inefficiencies, high costs, and the potential for errors that impact customer satisfaction and profitability.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="impact-card border-l-4 border-[#F1C40F]">
+                    <div class="text-5xl mb-4">⏳</div>
+                    <h3 class="text-2xl font-semibold text-[#0A2F51] mb-2">High Resolution Time</h3>
+                    <p class="text-slate-600">Slow manual processes lead to delays in bet settlement and in responding to disputes, affecting the user experience.</p>
+                </div>
+                <div class="impact-card border-l-4 border-[#F1C40F]">
+                    <div class="text-5xl mb-4">❌</div>
+                    <h3 class="text-2xl font-semibold text-[#0A2F51] mb-2">Human Error Rates</h3>
+                    <p class="text-slate-600">The complexity of rules and the volume of data increase the likelihood of manual errors, leading to correction costs and dissatisfaction.</p>
+                </div>
+                <div class="impact-card border-l-4 border-[#F1C40F]">
+                    <div class="text-5xl mb-4">💸</div>
+                    <h3 class="text-2xl font-semibold text-[#0A2F51] mb-2">Rising Operational Costs</h3>
+                    <p class="text-slate-600">Time is money, and manual verification across various markets at all times significantly increases operational costs, taking up productivity time and affecting customer satisfaction.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="impacto" class="my-12 md:my-16 scroll-mt-24 bg-white rounded-xl shadow-xl p-6 md:p-10">
+            <h2 class="text-4xl font-bold text-[#0A2F51] text-center mb-4">Transformative Impact: Measurable Efficiency and Precision</h2>
+            <p class="text-center text-lg text-slate-700 max-w-3xl mx-auto mb-10">
+                The implementation of the Specialist Verification Agent results in drastic improvements in key operational performance indicators.
+            </p>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                <div class="lg:col-span-2 chart-container">
+                    <canvas id="impactoEficienciaChart"></canvas>
+                </div>
+                <div class="text-center p-6 bg-[#0A2F51] rounded-lg text-white shadow-lg">
+                    <h3 class="text-2xl font-semibold mb-3">Reduction in Operational Time</h3>
+                    <div class="highlight-number">50%</div>
+                    <p class="mt-3 text-lg">Resource optimization and reduction of rework.</p>
+                </div>
+            </div>
+             <p class="text-sm text-slate-500 mt-6 text-center">
+                The chart illustrates the direct comparison between manual processes ("Before") and the results obtained with the tool ("After"), demonstrating significant gains.
+            </p>
+        </section>
+        <!-- ===== END OF PAGE 1 CONTENT ===== -->
+
+        <hr class="my-20 border-t-2 border-gray-300">
+
+        <!-- ===== START OF PAGE 2 CONTENT (UPDATED) ===== -->
+        <section id="ponto-de-partida" class="my-12 md:my-16 scroll-mt-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-[#2C3E50] text-center mb-6">How It Works: The Verification Flow</h2>
+            <p class="text-center text-lg text-slate-700 max-w-3xl mx-auto mb-10">
+                The process is initiated using only public, non-sensitive data from the internal system. The tool was designed to protect user privacy, ensuring no sensitive information is ever required for the analysis. This public data is then transformed into a structured query for our AI tool.
+            </p>
+            
+            <div class="workflow-card border-[#3498DB] max-w-3xl mx-auto mb-8">
+                <h3 class="text-xl font-semibold text-[#3498DB] mb-3 text-center">1. Data Origin: The YODA Interface</h3>
+                <p class="text-slate-600 mb-4 text-center">The process begins when an agent identifies a bet for verification in the system. The agent then extracts only the necessary, non-sensitive data directly from this known interface:</p>
+                <div class="output-example-container">
+                    <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/4e9d1a6114181e68b9f78f7cbbe791068372f3f7/public/Apresenta%C3%A7%C3%A3o%20agente%20de%20resultados%20-%20Hospedagem%20das%20Imagens/Sessa%CC%83o%20de%20Informac%CC%A7o%CC%83es%20da%20Aposta%20YODA.png" alt="Screenshot of the YODA interface showing the data of a bet for Santos vs Botafogo.">
+                </div>
+            </div>
+        
+            <div class="workflow-arrow text-center text-4xl md:text-5xl">⬇️</div>
+
+            <div class="workflow-card border-[#2ECC71] max-w-2xl mx-auto mt-8">
+                <h3 class="text-xl font-semibold text-[#2ECC71] mb-3 text-center">2. The Query Sent to the Assistant</h3>
+                <p class="text-slate-600 mb-4 text-center">The extracted data is formatted into a clear query and sent to the AI Agent to begin the analysis.</p>
+                <div class="output-example-container">
+                    <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/acb6036fc496abe53d2178e3670ec8b692c8712d/public/Apresenta%C3%A7%C3%A3o%20agente%20de%20resultados%20-%20Hospedagem%20das%20Imagens/Pergunta%20do%20Agente%20Interno%20-%20Santos%20v%20Botafogo%20-%20Sportsbook..png" alt="Agent Query Interface with bet details.">
+                </div>
+            </div>
+
+            <div class="workflow-arrow text-center text-4xl md:text-5xl">⬇️</div>
+
+            <h2 class="text-3xl md:text-4xl font-bold text-[#2C3E50] text-center mb-6 mt-12">Anatomy of a Complete Report</h2>
+            <p class="text-center text-lg text-slate-700 max-w-3xl mx-auto mb-10">
+                After processing, the tool generates a multi-faceted report to ensure total clarity for both the internal agent and the end customer.
+            </p>
+             
+            <div class="report-block-card">
+                <h3 class="text-2xl font-semibold text-[#3498DB] mb-3">Structured Response for the Customer</h3>
+                <p class="text-slate-600 mb-4">The tool generates professional and easy-to-understand communication to be sent to the customer, explaining the reason for the decision based on official data.</p>
+                <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/acb6036fc496abe53d2178e3670ec8b692c8712d/public/Apresenta%C3%A7%C3%A3o%20agente%20de%20resultados%20-%20Hospedagem%20das%20Imagens/Bloco%204%20Relato%CC%81rio%20do%20Assistente%20-%20Respota%20para%20Cliente%20Final%20-%20Santos%20v%20Botafogo%20-%20Sem%20Escalac%CC%A7a%CC%83o%20-%20Sportsbook%20-%20PT-BR.png" alt="Block 4 of the Report: Response for the end customer" class="output-example-container">
+            </div>
+            
+            <!-- NEW PROOF OF VALUE SECTION -->
+            <div class="report-block-card mt-12 border-l-8 border-red-500 bg-red-50/50">
+                <h3 class="text-2xl font-semibold text-red-600 mb-3">Proof of Value: Incorrect Settlement Correction</h3>
+                <p class="text-slate-700 mb-4">In this specific case, the bet was originally settled in the system as <strong>WON</strong>. However, our tool correctly identified that the result should be <strong>LOST</strong>, acting as a critical layer of auditing and correction.</p>
+                <p class="text-slate-700 mb-6"><strong>The Reason:</strong> The bet was "Over 6.5 cards". The manual card count in the game was inflated by a common error: a player (Neymar) received 2 yellow cards and 1 red card. According to betting rules, a second yellow card that leads to a red card counts as only one red card (value 2), not as three separate cards. Our tool applied this rule with precision, calculated the correct total of cards (which was less than 6.5), and determined the loss of the bet.</p>
+                
+                <h4 class="font-semibold text-center text-lg text-gray-800">Evidence of the Correct Analysis:</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4 p-4 bg-red-100/50 rounded-lg">
+                    <div>
+                        <h5 class="font-semibold text-center mb-2">1. Settled Bet (Incorrect)</h5>
+                        <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/7b46a0d968dcb8819d2156eebe09ec8c93c0cbd8/public/Logo%20and%20final%20proofs/1.%20Aposta%20Liquidada%20(Incorreta).png" class="analysis-container" alt="Original bet showing result 'W' (won).">
+                    </div>
+                    <div>
+                        <h5 class="font-semibold text-center mb-2">2. Game Timeline</h5>
+                        <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/7b46a0d968dcb8819d2156eebe09ec8c93c0cbd8/public/Logo%20and%20final%20proofs/2.%20Linha%20do%20Tempo%20do%20Jogo.png" class="analysis-container" alt="Match timeline showing cards and events.">
+                    </div>
+                    <div>
+                        <h5 class="font-semibold text-center mb-2">3. Player Statistics</h5>
+                        <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/7b46a0d968dcb8819d2156eebe09ec8c93c0cbd8/public/Logo%20and%20final%20proofs/3.%20Estat%C3%ADsticas%20do%20Jogador.png" class="analysis-container" alt="Neymar's statistics showing 1 red card (RC) and 2 yellow cards (YC).">
+                    </div>
+                </div>
+                <div class="conclusion-box mt-6 !border-red-500">
+                    <p><strong>Case Conclusion:</strong> This example is the definitive proof of the tool's value. It not only automates but acts as a security layer, identifying and correcting costly settlement errors that would otherwise go unnoticed, protecting revenue and ensuring fairness in the result.</p>
+                </div>
+            </div>
+
+        </section>
+        <!-- ===== END OF PAGE 2 CONTENT ===== -->
+
+        <hr class="my-20 border-t-2 border-gray-300">
+
+        <!-- ===== START OF PAGE 3 CONTENT ===== -->
+        <section id="arquitetura" class="my-12 md:my-16 scroll-mt-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-6">The Engineering Behind the Precision</h2>
+            <p class="text-center text-lg text-slate-700 max-w-3xl mx-auto mb-10">
+                Our solution is based on a sophisticated architecture that orchestrates Large Language Models (LLMs), robust APIs, and an intelligent data processing pipeline. The goal is to provide accurate and efficient bet verifications.
+            </p>
+            <div class="tech-card mb-6">
+                <h3 class="text-2xl font-semibold mb-3">a. API and Data Orchestration:</h3>
+                <div class="image-container-tech bg-gray-700 p-2 rounded-md">
+                     <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/e12f41b59ee2a37a3f53a62e487e36727dd80c82/public/Engenharia%20por%20tr%C3%A1s%20do%20Agente%20-%20Hospedagem%20das%20Imagens/Os%20Sport%20Perform%20API%20%3A%20SofaSport%20API%20Main.png" alt="Detailed flow diagram of API orchestration.">
+                </div>
+                <p class="mt-3 text-slate-600">A sophisticated internal workflow searches, validates, and aggregates data from multiple sources, ensuring that all necessary information (event, statistics, players) is collected efficiently.</p>
+            </div>
+
+            <div class="prompt-highlight-card">
+                <h2 class="text-3xl md:text-4xl font-bold text-center mb-6">HIGHLIGHT: The Agent's Brain - Prompt Engineering</h2>
+                <p class="text-center text-lg max-w-3xl mx-auto mb-10">
+                    The precise and consistent behavior of our LLM Agent is meticulously guided by sophisticated prompt engineering. This "instruction manual" defines its role, objectives, logic, and the exact format of its responses.
+                </p>
+                <div class="sub-tech-card bg-slate-700 border-l-slate-500">
+                    <h3 class="text-2xl font-semibold mb-3 text-[#4FD1C5]">Defining Role, Rules, and Output Format:</h3>
+                    <div class="image-container-tech">
+                        <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/e12f41b59ee2a37a3f53a62e487e36727dd80c82/public/Engenharia%20por%20tr%C3%A1s%20do%20Agente%20-%20Hospedagem%20das%20Imagens/1.%20Prompt%20do%20Assistente.png" alt="Beginning of the Assistant's Prompt, defining ROLE, OBJECTIVE, and PRIMARY RULE.">
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- ===== END OF PAGE 3 CONTENT ===== -->
+        
+        <hr class="my-20 border-t-2 border-gray-300">
+
+        <!-- ===== START OF PAGE 4 CONTENT ===== -->
+        <section id="estudos-de-caso" class="my-12 scroll-mt-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-[#0A2F51] text-center mb-6">Case Studies: Intelligence in Action</h2>
+            <p class="text-center text-lg text-slate-700 max-w-3xl mx-auto mb-10">
+                The robustness of the tool is proven in its ability to handle the nuances and specific rules of different types of bets.
+            </p>
+
+            <div class="case-study-card">
+                <h3 class="text-3xl font-bold mb-2">⚖️ The Logic of the Red Card for a Double Yellow</h3>
+                <p class="text-slate-600 mb-6"><strong>The Challenge:</strong> How should the system count cards when a player receives a second yellow and, consequently, a red card? A common mistake is to add 2 yellows + 1 red, totaling 3. The correct rule considers the red card as worth 2 cards and nullifies the second yellow for counting purposes, totaling 2 cards.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 analysis-container">
+                    <div>
+                        <h4 class="font-semibold mb-2">Internal Analysis and Applied Rule:</h4>
+                        <img src="https://cdn.jsdelivr.net/gh/riohdigital/rio-digital-hub-connect@ddc4859c69d114a082d279cc4c93a3c7477948db/public/Casos%20onde%20n%C3%A3o%20precisariam%20ter%20sido%20escalados/1.png" alt="Internal discussion about the rule of 2 yellow cards leading to a red one.">
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Final Response Generated for the Customer:</h4>
+                        <img src="https://cdn.jsdelivr.net/gh/riohdigital/rio-digital-hub-connect@ddc4859c69d114a082d279cc4c93a3c7477948db/public/Casos%20onde%20n%C3%A3o%20precisariam%20ter%20sido%20escalados/2.png" alt="Response to the customer explaining that the total cards for the player was 2.">
+                    </div>
+                </div>
+                <div class="conclusion-box">
+                    <p><strong>Intelligence Demonstration:</strong> The tool correctly applies the specific card counting rule, ensuring the accurate settlement of "Total Cards" markets.</p>
+                </div>
+            </div>
+
+            <div class="case-study-card">
+                <h3 class="text-3xl font-bold mb-2">⏱️ "Half Time/Full Time" Betting Logic</h3>
+                <p class="text-slate-600 mb-6"><strong>The Challenge:</strong> A bet on "Brazil/Brazil" (Brazil to win at halftime AND at the end of the game) requires Brazil to win both halves independently. If the team wins the 1st half 1-0 and the game ends 1-0, the 2nd half was 0-0 (a draw), invalidating the condition.</p>
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 analysis-container">
+                    <div>
+                        <h4 class="font-semibold mb-2">Internal Analysis and Applied Rule:</h4>
+                        <img src="https://cdn.jsdelivr.net/gh/riohdigital/rio-digital-hub-connect@ddc4859c69d114a082d279cc4c93a3c7477948db/public/Casos%20onde%20n%C3%A3o%20precisariam%20ter%20sido%20escalados/3.png" alt="Internal discussion about the Half Time/Full Time bet.">
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Final Response Generated for the Customer:</h4>
+                        <img src="https://cdn.jsdelivr.net/gh/riohdigital/rio-digital-hub-connect@ddc4859c69d114a082d279cc4c93a3c7477948db/public/Casos%20onde%20n%C3%A3o%20precisariam%20ter%20sido%20escalados/4.png" alt="Response to the customer explaining the logic of the halftime and full-time result.">
+                    </div>
+                </div>
+                <div class="conclusion-box">
+                    <p><strong>Intelligence Demonstration:</strong> Ability to analyze a game in segments (1st and 2nd half) and apply the correct logic for complex conditional markets.</p>
+                </div>
+            </div>
+
+            <div class="case-study-card">
+                <h3 class="text-3xl font-bold mb-2">🎯 Specific Market Rules - Handicap without Draw</h3>
+                <p class="text-slate-600 mb-6"><strong>The Challenge:</strong> A handicap bet can result in an adjusted score of a draw (e.g., a team loses 2-0 with a +2 handicap, adjusted result 2-2). Some handicap markets do not cover the draw (they are 2-way: win/loss). The tool needs to know and apply the specific market rule.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 analysis-container">
+                    <div>
+                        <h4 class="font-semibold mb-2">Internal Analysis and Applied Rule:</h4>
+                        <img src="https://cdn.jsdelivr.net/gh/riohdigital/rio-digital-hub-connect@ddc4859c69d114a082d279cc4c93a3c7477948db/public/Casos%20onde%20n%C3%A3o%20precisariam%20ter%20sido%20escalados/7.png" alt="Discussion about a handicap result leading to a draw.">
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Final Response Generated for the Customer:</h4>
+                        <img src="https://cdn.jsdelivr.net/gh/riohdigital/rio-digital-hub-connect@ddc4859c69d114a082d279cc4c93a3c7477948db/public/Casos%20onde%20n%C3%A3o%20precisariam%20ter%20sido%20escalados/8.png" alt="Response to the customer explaining that the handicap resulted in a draw and the bet was lost.">
+                    </div>
+                </div>
+                <div class="conclusion-box">
+                    <p><strong>Intelligence Demonstration:</strong> The analysis is not limited to the game's result but incorporates the specific rules of the betting market ("Alternative Handicaps"), which in this case determined that an adjusted draw resulted in a loss.</p>
+                </div>
+            </div>
+
+            <div class="case-study-card">
+                <h3 class="text-3xl font-bold mb-2">📜 Application of Conditional Rules ("Safe Substitution")</h3>
+                <p class="text-slate-600 mb-6"><strong>The Challenge:</strong> Special offers like "Safe Substitution" (where the bet is valid if the substituted player meets the condition) do not apply to all competitions. The tool must check if the match's league is eligible before applying the rule.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 analysis-container">
+                    <div>
+                        <h4 class="font-semibold mb-2">Internal Analysis and Applied Rule:</h4>
+                        <img src="https://cdn.jsdelivr.net/gh/riohdigital/rio-digital-hub-connect@ddc4859c69d114a082d279cc4c93a3c7477948db/public/Casos%20onde%20n%C3%A3o%20precisariam%20ter%20sido%20escalados/9.png" alt="Discussion about the Safe Substitution rule and eligible leagues.">
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Final Response Generated for the Customer:</h4>
+                        <img src="https://cdn.jsdelivr.net/gh/riohdigital/rio-digital-hub-connect@ddc4859c69d114a082d279cc4c93a3c7477948db/public/Casos%20onde%20n%C3%A3o%20precisariam%20ter%20sido%20escalados/10.png" alt="Response to the customer informing that the rule does not apply to the bet's competition.">
+                    </div>
+                </div>
+                <div class="conclusion-box">
+                    <p><strong>Intelligence Demonstration:</strong> Ability to manage and apply rules with multiple conditions (in this case, competition eligibility), demonstrating a robust and contextual rule knowledge base.</p>
+                </div>
+            </div>
+
+        </section>
+        <!-- ===== END OF PAGE 4 CONTENT ===== -->
+
+        <hr class="my-20 border-t-2 border-gray-300">
+
+        <!-- ===== START OF NEW TECHNICAL PAGE (PAGE 5) ===== -->
+        <section id="tecnologia-e-custos" class="my-12 scroll-mt-24">
+            <h2 class="text-3xl md:text-4xl font-bold text-[#0A2F51] text-center mb-12">Technical Details: APIs and Scalability</h2>
+            
+            <div class="tech-card">
+                <h3 class="text-2xl md:text-3xl font-bold mb-4">🔗 Data Ecosystem: Trust and Depth</h3>
+                <div class="flex flex-col sm:flex-row items-center gap-6 mb-6">
+                    <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/7b46a0d968dcb8819d2156eebe09ec8c93c0cbd8/public/Logo%20and%20final%20proofs/Logo%20SofaSport.png" alt="SofaSport Logo" class="w-48 h-auto flex-shrink-0">
+                    <p class="text-slate-600">Our confidence in the data comes from using cutting-edge APIs, such as **SofaSport**. The most important point is that the very platforms we use for manual verification, like **SofaScore** and **StatsPerform (Opta)**, are clients and partners of the same data source, as reported by the API itself.</p>
+                </div>
+                <div class="output-example-container mb-6">
+                     <img src="https://raw.githubusercontent.com/riohdigital/rio-digital-hub-connect/7b46a0d968dcb8819d2156eebe09ec8c93c0cbd8/public/Logo%20and%20final%20proofs/Detalhes%20da%20API.png" alt="API details showing the partnership with Opta and other sources.">
+                </div>
+                <div class="conclusion-box">
+                    <p><strong>This means our automated tool draws from the same source as the market references</strong>, ensuring a level of consistency and confidence that eliminates the need for double-checking in the vast majority of cases.</p>
+                </div>
+            </div>
+
+            <div class="tech-card">
+                <h3 class="text-2xl md:text-3xl font-bold mb-4">🚀 Future Vision: Immediate Scalability for New Sports</h3>
+                <p class="text-slate-600 mb-6">The current architecture, based on the SofaSport API, prepares us for a rapid and efficient expansion into other markets. The verification logic can be adapted for more than 20 additional sports, including:</p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-3 text-slate-700">
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Tennis</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Basketball</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Ice Hockey</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Handball</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Volleyball</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Table Tennis</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Baseball</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">American Football</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">MMA</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Cricket</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Rugby</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Darts</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Snooker</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Futsal</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">Badminton</span>
+                    <span class="p-2 bg-slate-200 rounded-md text-center">E-sports</span>
+                </div>
+            </div>
+
+        </section>
+        <!-- ===== END OF NEW TECHNICAL PAGE ===== -->
+
+
+    </main>
+
+    <!-- MAIN FOOTER -->
+    <footer class="mt-12 bg-[#0A2F51] text-white text-center p-10">
+        <p class="text-2xl font-semibold">The Future of Bet Verification is Smart and Efficient.</p>
+        <p class="text-sm mt-3">This presentation demonstrates the project and impact of the Automated Verification Tool.</p>
+    </footer>
+
+    <!-- UNIFIED SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Chart Logic (from Page 1) ---
+            const impactoCtx = document.getElementById('impactoEficienciaChart')?.getContext('2d');
+            if (impactoCtx) {
+                const corporatePalette = {
+                    deepBlue: '#0A2F51', growthGreen: '#2ECC71', mediumGray: '#BDC3C7',
+                    darkText: '#2C3E50', white: '#FFFFFF'
+                };
+                const wrapLabel = (label) => (typeof label === 'string' && label.length > 16) ? label.split(' ') : label;
+                new Chart(impactoCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Average Resolution Time (Minutes)', 'Manual Error Rate (%)'].map(wrapLabel),
+                        datasets: [
+                            { label: 'Before the Tool', data: [15, 60], backgroundColor: corporatePalette.mediumGray },
+                            { label: 'With the Tool', data: [7, 1], backgroundColor: corporatePalette.growthGreen }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // --- Sticky Navigation Logic (Unified) ---
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.sticky-nav a');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            const isActive = link.getAttribute('href').substring(1) === entry.target.id;
+                            link.classList.toggle('active', isActive);
+                        });
+                    }
+                });
+            }, { rootMargin: '-40% 0px -60% 0px' });
+            
+            sections.forEach(section => observer.observe(section));
+        });
+    </script>
+</body>
+</html>
