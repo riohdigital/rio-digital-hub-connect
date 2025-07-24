@@ -44,6 +44,8 @@ const AssistantChat = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentAssistant, setCurrentAssistant] = useState<AssistantInfo | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('portuguese');
+  const [retryAttempts, setRetryAttempts] = useState(0);
+  const [lastUserMessage, setLastUserMessage] = useState<string>('');
   
   // History functionality
   const [isHistoryPanelVisible, setIsHistoryPanelVisible] = useState(false);
@@ -408,93 +410,152 @@ I'm waiting for your bet details to start verification! 😊`;
     }
   };
   
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!inputValue.trim() || isLoading || !currentAssistant || !user?.id) return;
+  // Helper function to check if error is a server error (5xx)
+  const isServerError = (error: any): boolean => {
+    if (error && error.message) {
+      // Check for HTTP 5xx status codes
+      const serverErrorMatch = error.message.match(/Erro (\d{3}):/);
+      if (serverErrorMatch) {
+        const statusCode = parseInt(serverErrorMatch[1]);
+        return statusCode >= 500 && statusCode < 600;
+      }
+    }
+    return false;
+  };
+
+  // Helper function to send message to webhook
+  const sendMessageToWebhook = async (messageToSend: string): Promise<string> => {
+    const startTime = new Date();
     
-    const userMessage: Message = { sender: 'user', text: inputValue.trim() };
-    setMessages(prev => [...prev, userMessage]);
-    const messageToSend = inputValue.trim();
-    setInputValue('');
+    // Use the language-specific webhook
+    const webhookUrl = getWebhookUrl(selectedLanguage);
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: messageToSend,
+        userId: user.id,
+        sessionId: user.id,
+        language: selectedLanguage
+      }),
+    });
+    
+    const endTime = new Date();
+    const responseTime = endTime.getTime() - startTime.getTime();
+    
+    if (response.ok) {
+      // Verificar se a resposta tem conteúdo antes de tentar fazer parse
+      const responseText = await response.text();
+      console.log("Raw API response:", responseText);
+      
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Resposta vazia do servidor');
+      }
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Erro ao fazer parse da resposta JSON:", parseError);
+        throw new Error('Resposta do servidor não é um JSON válido');
+      }
+      
+      // Verificar e processar a resposta que pode ser estruturada (JSON) ou texto simples
+      const rawResponse = data.cleaned_text || data.output || data.reply || "Desculpe, não consegui processar sua solicitação.";
+      
+      // Reset retry attempts on successful response
+      setRetryAttempts(0);
+      setLastUserMessage('');
+      
+      return rawResponse;
+    } else {
+      throw new Error(`Erro ${response.status}: ${response.statusText}`);
+    }
+  };
+
+  const handleSendMessage = async (e?: React.FormEvent, isRetry: boolean = false) => {
+    if (e) e.preventDefault();
+    
+    // For retries, use the last user message; for new messages, use the input value
+    const messageToSend = isRetry ? lastUserMessage : inputValue.trim();
+    
+    if (!messageToSend || isLoading || !currentAssistant || !user?.id) return;
+    
+    // Only add user message to chat if it's not a retry
+    if (!isRetry) {
+      const userMessage: Message = { sender: 'user', text: messageToSend };
+      setMessages(prev => [...prev, userMessage]);
+      setLastUserMessage(messageToSend);
+      setInputValue('');
+    }
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      const startTime = new Date();
+      // Only save to history if it's not a retry
+      if (!isRetry) {
+        await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
+          user_id: user.id,
+          assistant_type: currentAssistant.id,
+          message_content: messageToSend,
+          sender: 'user',
+          status: 'sent',
+        });
+      }
       
-      await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
-        user_id: user.id,
-        assistant_type: currentAssistant.id,
-        message_content: userMessage.text,
-        sender: userMessage.sender,
-        status: 'sent',
-      });
+      const rawResponse = await sendMessageToWebhook(messageToSend);
       
-      // Use the language-specific webhook
-      const webhookUrl = getWebhookUrl(selectedLanguage);
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: messageToSend,
-          userId: user.id,
-          sessionId: user.id,
-          language: selectedLanguage
-        }),
-      });
+      // Criar a mensagem do assistente
+      const assistantMessage: Message = { sender: 'assistant', text: rawResponse };
+      setMessages(prev => [...prev, assistantMessage]);
       
-      const endTime = new Date();
-      const responseTime = endTime.getTime() - startTime.getTime();
+      // Salvar no histórico, verificando se contém um relatório (seja formato texto ou JSON)
+      const shouldSaveToHistory = isStructuredResponse(rawResponse) || 
+                                 rawResponse.includes("Relatório Interno de Verificação");
       
-      if (response.ok) {
-        // Verificar se a resposta tem conteúdo antes de tentar fazer parse
-        const responseText = await response.text();
-        console.log("Raw API response:", responseText);
+      if (shouldSaveToHistory) {
+        await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
+          user_id: user.id,
+          assistant_type: currentAssistant.id,
+          message_content: assistantMessage.text,
+          sender: assistantMessage.sender,
+          status: 'processed',
+        });
         
-        if (!responseText || responseText.trim() === '') {
-          throw new Error('Resposta vazia do servidor');
+        // Refresh history if panel is visible
+        if (isHistoryPanelVisible) {
+          fetchChatHistory();
         }
-        
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error("Erro ao fazer parse da resposta JSON:", parseError);
-          throw new Error('Resposta do servidor não é um JSON válido');
-        }
-        
-        // Verificar e processar a resposta que pode ser estruturada (JSON) ou texto simples
-        const rawResponse = data.cleaned_text || data.output || data.reply || "Desculpe, não consegui processar sua solicitação.";
-        
-        // Criar a mensagem do assistente
-        const assistantMessage: Message = { sender: 'assistant', text: rawResponse };
-        setMessages(prev => [...prev, assistantMessage]);
-        
-        // Salvar no histórico, verificando se contém um relatório (seja formato texto ou JSON)
-        const shouldSaveToHistory = isStructuredResponse(rawResponse) || 
-                                   rawResponse.includes("Relatório Interno de Verificação");
-        
-        if (shouldSaveToHistory) {
-          await supabase.from('chat_resultados_esportivos_oficiais_history').insert({
-            user_id: user.id,
-            assistant_type: currentAssistant.id,
-            message_content: assistantMessage.text,
-            sender: assistantMessage.sender,
-            status: 'processed',
-            response_time: `${responseTime} milliseconds`,
-          });
-          
-          // Refresh history if panel is visible
-          if (isHistoryPanelVisible) {
-            fetchChatHistory();
-          }
-        }
-      } else {
-        throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
     } catch (err: any) {
       console.error("Error:", err);
-      setError(err.message || 'Erro ao processar a mensagem');
+      
+      // Check if it's a server error and we haven't exceeded retry limit
+      if (isServerError(err) && retryAttempts === 0) {
+        console.log("Server error detected, attempting retry...");
+        setRetryAttempts(1);
+        
+        // Retry after a short delay
+        setTimeout(() => {
+          handleSendMessage(undefined, true);
+        }, 1500);
+        
+        // Don't show error message yet, let the retry attempt happen
+        return;
+      } else if (retryAttempts > 0) {
+        // Second attempt failed, show message to restart search
+        const restartMessage = selectedLanguage === 'portuguese' 
+          ? 'Ocorreu um erro no servidor. Por favor, reinicie sua pesquisa digitando novamente os detalhes da sua aposta.'
+          : 'A server error occurred. Please restart your search by typing your bet details again.';
+        
+        setError(restartMessage);
+        setRetryAttempts(0);
+        setLastUserMessage('');
+      } else {
+        // Not a server error or other error
+        setError(err.message || 'Erro ao processar a mensagem');
+      }
     } finally {
       setIsLoading(false);
     }
