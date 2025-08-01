@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Bot } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -27,6 +28,7 @@ interface ChatMessagesProps {
   messages: Message[];
   isLoading: boolean;
   error: string | null;
+  onRetry?: () => void;
 }
 
 // Componente personalizado para renderizar blocos de código no ReactMarkdown
@@ -155,7 +157,7 @@ const IntermediateMessageView = ({ data }: { data: IntermediateMessage }) => {
   );
 };
 
-export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) => {
+export const ChatMessages = ({ messages, isLoading, error, onRetry }: ChatMessagesProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change or loading state changes
@@ -298,7 +300,19 @@ export const ChatMessages = ({ messages, isLoading, error }: ChatMessagesProps) 
             <Card className="max-w-[85%] p-3 bg-destructive/15 border-destructive text-destructive rounded-bl-none shadow-sm">
               <div className="flex items-start gap-2">
                 <span className="text-sm font-medium">Erro:</span>
-                <p className="text-sm">{error}</p>
+                <div className="flex-1">
+                  <p className="text-sm">{error}</p>
+                  {onRetry && (
+                    <Button 
+                      onClick={onRetry}
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 text-xs"
+                    >
+                      Buscar novamente
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
           </motion.div>
