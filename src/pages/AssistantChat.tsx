@@ -22,13 +22,6 @@ interface AssistantInfo {
   icon?: string;
 }
 
-class EmptyResponseError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'EmptyResponseError';
-  }
-}
-
 type Language = 'portuguese' | 'english';
 
 const assistantDisplayInfo: { [key: string]: { name: string, icon: string } } = {
@@ -52,7 +45,6 @@ const AssistantChat = () => {
   const [currentAssistant, setCurrentAssistant] = useState<AssistantInfo | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('portuguese');
   const [retryAttempts, setRetryAttempts] = useState(0);
-  const [emptyResponseRetryAttempts, setEmptyResponseRetryAttempts] = useState(0);
   const [lastUserMessage, setLastUserMessage] = useState<string>('');
   
   // History functionality
@@ -457,7 +449,7 @@ I'm waiting for your bet details to start verification! 😊`;
       console.log("Raw API response:", responseText);
       
       if (!responseText || responseText.trim() === '') {
-        throw new EmptyResponseError('Resposta vazia do servidor');
+        throw new Error('Resposta vazia do servidor');
       }
       
       let data;
@@ -469,16 +461,10 @@ I'm waiting for your bet details to start verification! 😊`;
       }
       
       // Verificar e processar a resposta que pode ser estruturada (JSON) ou texto simples
-      let rawResponse = data.cleaned_text || data.output || data.reply;
-      
-      // Check if response is empty after extracting from data
-      if (!rawResponse || rawResponse.trim() === '') {
-        throw new EmptyResponseError('Resposta vazia do servidor');
-      }
+      const rawResponse = data.cleaned_text || data.output || data.reply || "Desculpe, não consegui processar sua solicitação.";
       
       // Reset retry attempts on successful response
       setRetryAttempts(0);
-      setEmptyResponseRetryAttempts(0);
       setLastUserMessage('');
       
       return rawResponse;
@@ -544,30 +530,6 @@ I'm waiting for your bet details to start verification! 😊`;
       }
     } catch (err: any) {
       console.error("Error:", err);
-      
-      // Check if it's an empty response error and we haven't exceeded retry limit
-      if (err instanceof EmptyResponseError && emptyResponseRetryAttempts === 0) {
-        console.log("Empty response detected, attempting retry...");
-        setEmptyResponseRetryAttempts(1);
-        
-        // Retry after a short delay
-        setTimeout(() => {
-          handleSendMessage(undefined, true);
-        }, 1500);
-        
-        // Don't show error message yet, let the retry attempt happen
-        return;
-      } else if (err instanceof EmptyResponseError && emptyResponseRetryAttempts > 0) {
-        // Second empty response attempt failed, show error with retry button
-        const errorMessage = selectedLanguage === 'portuguese' 
-          ? 'Desculpe, não consegui processar sua solicitação.'
-          : 'Sorry, I couldn\'t process your request.';
-        
-        setError(errorMessage);
-        setEmptyResponseRetryAttempts(0);
-        // Keep lastUserMessage for retry button functionality
-        return;
-      }
       
       // Check if it's a server error and we haven't exceeded retry limit
       if (isServerError(err) && retryAttempts === 0) {
@@ -682,7 +644,6 @@ I'm waiting for your bet details to start verification! 😊`;
             messages={assistantMessages}
             isLoading={isLoading}
             error={error}
-            onRetry={lastUserMessage ? () => handleSendMessage(undefined, true) : undefined}
           />
         </main>
       </div>
