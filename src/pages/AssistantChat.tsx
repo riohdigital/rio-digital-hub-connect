@@ -46,6 +46,7 @@ const AssistantChat = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('portuguese');
   const [retryAttempts, setRetryAttempts] = useState(0);
   const [lastUserMessage, setLastUserMessage] = useState<string>('');
+  const [emptyResponseRetryAttempts, setEmptyResponseRetryAttempts] = useState(0);
   
   // History functionality
   const [isHistoryPanelVisible, setIsHistoryPanelVisible] = useState(false);
@@ -463,8 +464,14 @@ I'm waiting for your bet details to start verification! 😊`;
       // Verificar e processar a resposta que pode ser estruturada (JSON) ou texto simples
       const rawResponse = data.cleaned_text || data.output || data.reply || "Desculpe, não consegui processar sua solicitação.";
       
+      // Check if output is empty
+      if (!rawResponse || rawResponse.trim() === '') {
+        throw new Error('EmptyResponse');
+      }
+      
       // Reset retry attempts on successful response
       setRetryAttempts(0);
+      setEmptyResponseRetryAttempts(0);
       setLastUserMessage('');
       
       return rawResponse;
@@ -531,8 +538,26 @@ I'm waiting for your bet details to start verification! 😊`;
     } catch (err: any) {
       console.error("Error:", err);
       
-      // Check if it's a server error and we haven't exceeded retry limit
-      if (isServerError(err) && retryAttempts === 0) {
+      // Check if it's an empty response and we haven't exceeded retry limit
+      if (err.message === 'EmptyResponse' && emptyResponseRetryAttempts === 0) {
+        console.log("Empty response detected, attempting retry...");
+        setEmptyResponseRetryAttempts(1);
+        
+        // Retry after a short delay
+        setTimeout(() => {
+          handleSendMessage(undefined, true);
+        }, 1500);
+        
+        // Don't show error message yet, let the retry attempt happen
+        return;
+      } else if (err.message === 'EmptyResponse' && emptyResponseRetryAttempts > 0) {
+        // Second empty response, show friendly message
+        const emptyRetryMessage = 'Uff, dizem que robô não cansa, eu dei uma cansada, mas pode refazer sua busca que agora eu vou com todo gaz';
+        
+        setError(emptyRetryMessage);
+        setEmptyResponseRetryAttempts(0);
+        setLastUserMessage('');
+      } else if (isServerError(err) && retryAttempts === 0) {
         console.log("Server error detected, attempting retry...");
         setRetryAttempts(1);
         
