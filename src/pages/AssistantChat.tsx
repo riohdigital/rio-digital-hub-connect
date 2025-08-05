@@ -128,7 +128,7 @@ Com essas informações, consultarei nossas fontes de dados oficiais (API's). Pa
 
 ⏱️ **Regras Especiais de Apostas:**
     *   **"2 UP" (Dois Gols de Vantagem):** Verificamos se o time selecionado abriu 2 gols de vantagem em mercados aplicáveis.
-    *   **"Substituição Segura":** Para mercados de jogador qualificados (Marcador, Assistência, Cartão, Chutes, Faltas) nas seguintes competições: **Brasileirão Série A, Brasileirão Betano, Copa do Mundo de Clubes FIFA, Champions League, Europa League, Premier League, Copa da Inglaterra.**
+    *   **"Substituição Segura":** Para mercados de jogador qualificados (Marcador, Assistência, Cartão, Chutes, Faltas) nas seguintes competições: **Brasileirão Série A, Brasileirão, Copa do Mundo de Clubes FIFA, Champions League, Europa League, Premier League, Copa da Inglaterra.**
         *   *Importante:* Esta regra **não se aplica** se o mercado for do tipo "Boost" (OddsBoost, Super Boost, etc.).
 
 ---
@@ -140,7 +140,7 @@ Com essas informações, consultarei nossas fontes de dados oficiais (API's). Pa
 
 ⚠️ **Atenção:**
 
-*   **Por favor, **Nunca forneça dados confidenciais** como IDs únicos de apostas, senhas e informações pessoais!
+*   **Por favor, Nunca forneça dados confidenciais** como IDs únicos de apostas, senhas e informações pessoais!
 
 Aguardo os detalhes da sua aposta para iniciar a verificação! 😊`;
     } else {
@@ -204,7 +204,7 @@ With this information, I'll consult our official data sources (APIs). For comple
 
 ⏱️ **Special Betting Rules:**
     *   **"2 UP" (Two Goals Advantage):** We verify if the selected team opened a 2-goal advantage in applicable markets.
-    *   **"Safe Substitution":** For qualified player markets (Scorer, Assist, Card, Shots, Fouls) in the following competitions: **Brazilian Serie A, Brasileirao Betano, FIFA Club World Cup, Champions League, Europa League, Premier League, FA Cup.**
+    *   **"Safe Substitution":** For qualified player markets (Scorer, Assist, Card, Shots, Fouls) in the following competitions: **Brazilian Serie A, Brasileirao, FIFA Club World Cup, Champions League, Europa League, Premier League, FA Cup.**
         *   *Important:* This rule **does not apply** if the market is "Boost" type (OddsBoost, Super Boost, etc.).
 
 ---
