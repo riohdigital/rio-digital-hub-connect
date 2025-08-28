@@ -8,6 +8,7 @@ import { ChatMessages } from "@/components/chat/ChatMessages";
 import { LanguageSelector } from "@/components/chat/LanguageSelector";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import SupermarketAssistant from "./SupermarketAssistant";
 
 interface Message {
   id?: string;
@@ -29,6 +30,7 @@ const assistantDisplayInfo: { [key: string]: { name: string, icon: string } } = 
   "digirioh": { name: "DigiRioh", icon: "⚙️" },
   "agente_do_booking": { name: "Agente do Booking", icon: "🏨" },
   "agente_de_airbnb": { name: "Agente de Airbnb", icon: "🏠" },
+  "atendimento_para_super_mercados": { name: "Atendimento para Super Mercados", icon: "🛒" },
 };
 
 const AssistantChat = () => {
@@ -379,6 +381,11 @@ I'm waiting for your bet details to start verification! 😊`;
       navigate('/dashboard');
     }
   }, [assistantType, navigate, getInitialMessage, selectedLanguage]);
+
+  // Redirect to specific pages for certain assistant types
+  if (assistantType === "atendimento_para_super_mercados") {
+    return <SupermarketAssistant />;
+  }
   
   // Função para verificar se a resposta contém dados estruturados (JSON)
   const isStructuredResponse = (text: string): boolean => {

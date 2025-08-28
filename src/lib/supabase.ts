@@ -136,6 +136,13 @@ export const getAvailableAssistants = async (): Promise<Assistant[]> => {
       description: "Otimize a precificação dos seus imóveis no Airbnb com análises de mercado em tempo real.",
       icon: "💰",
       type: "agente_airbnb_precificacao",
+    },
+    {
+      id: "6",
+      name: "Atendimento para Super Mercados",
+      description: "Atendimento inteligente para supermercados com IA avançada e respostas personalizadas.",
+      icon: "🛒",
+      type: "atendimento_para_super_mercados",
     }
   ];
 };
