@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, ShoppingCart, Package, Users, TrendingUp, Zap, Bot } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Package, Users, TrendingUp, Zap, Bot, RefreshCw } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { WEBHOOK_URLS } from "@/lib/constants";
 
@@ -11,18 +11,42 @@ export default function SupermarketAssistant() {
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversation, setConversation] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
+  
+  // NOVO: Estado para armazenar o ID da sessão
+  const [sessionId, setSessionId] = useState<string>('');
+  
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // NOVO: Hook para gerenciar o ID da sessão na inicialização
+  useEffect(() => {
+    let currentSessionId = sessionStorage.getItem('supermarket_session_id');
+    if (!currentSessionId) {
+      currentSessionId = crypto.randomUUID();
+      sessionStorage.setItem('supermarket_session_id', currentSessionId);
+    }
+    setSessionId(currentSessionId);
+  }, []);
+
+  // NOVO: Função para reiniciar a sessão
+  const handleRestartSession = () => {
+    setConversation([]);
+    const newSessionId = crypto.randomUUID();
+    sessionStorage.setItem('supermarket_session_id', newSessionId);
+    setSessionId(newSessionId);
+    toast({
+      title: "Sessão Reiniciada",
+      description: "Você pode iniciar uma nova conversa.",
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim() || isLoading) return;
+    if (!query.trim() || isLoading || !sessionId) return;
 
     const userMessage = query.trim();
     setQuery('');
     setIsLoading(true);
-
-    // Add user message to conversation
     setConversation(prev => [...prev, { role: 'user', content: userMessage }]);
 
     try {
@@ -30,6 +54,8 @@ export default function SupermarketAssistant() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // ALTERADO: Adiciona o cabeçalho customizado com o ID da sessão
+          'X-Session-ID': sessionId,
         },
         body: JSON.stringify({
           message: userMessage,
@@ -42,11 +68,11 @@ export default function SupermarketAssistant() {
       }
 
       const data = await response.json();
+      const assistantMessage = (data && data.output) ? data.output : 'Desculpe, não consegui processar sua solicitação no momento.';
       
-      // Add assistant response to conversation
       setConversation(prev => [...prev, { 
         role: 'assistant', 
-        content: data.output || 'Desculpe, não consegui processar sua solicitação no momento.' 
+        content: assistantMessage
       }]);
 
     } catch (error) {
@@ -154,7 +180,7 @@ export default function SupermarketAssistant() {
                 </div>
 
                 {/* Input Form */}
-                <form onSubmit={handleSubmit} className="flex gap-2">
+                <form onSubmit={handleSubmit} className="flex gap-2 items-center">
                   <Input
                     placeholder="Digite sua pergunta sobre supermercados..."
                     value={query}
@@ -162,6 +188,20 @@ export default function SupermarketAssistant() {
                     className="flex-1 bg-white/50 dark:bg-gray-800/50 border-2 border-blue-200 dark:border-blue-800 focus:border-blue-500 dark:focus:border-blue-400"
                     disabled={isLoading}
                   />
+                  
+                  {/* ALTERADO: Botão de reiniciar sessão reposicionado aqui */}
+                  <Button
+                    type="button" // Importante para não submeter o formulário
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRestartSession}
+                    disabled={isLoading}
+                    aria-label="Reiniciar Sessão"
+                    className="hover:bg-white/20 dark:hover:bg-gray-800/50"
+                  >
+                    <RefreshCw className="h-5 w-5" />
+                  </Button>
+                  
                   <Button 
                     type="submit" 
                     disabled={isLoading || !query.trim()}
@@ -196,8 +236,13 @@ export default function SupermarketAssistant() {
                       className="w-full justify-start gap-3 h-auto p-4 bg-white/50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-2 border-transparent hover:border-blue-200 dark:hover:border-blue-800"
                       onClick={() => {
                         setQuery(action.query);
-                        setConversation(prev => [...prev, { role: 'user', content: action.query }]);
-                        handleSubmit(new Event('submit') as any);
+                        // Dispara o envio do formulário programaticamente
+                        const form = document.querySelector('form');
+                        if (form) {
+                            // Criamos um evento 'submit' falso e o despachamos no formulário
+                            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                            form.dispatchEvent(submitEvent);
+                        }
                       }}
                       disabled={isLoading}
                     >
